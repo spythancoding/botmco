@@ -6,6 +6,6 @@ module.exports = {
     .setDescription('Verifica se o bot está online'),
 
   async execute(interaction) {
-    await interaction.reply('🏓 Pong! Quem é você mesmo? hahahah.');
+    await interaction.reply('Ao vivo e a CORES!');
   },
 };
