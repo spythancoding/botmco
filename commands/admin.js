@@ -8,7 +8,7 @@ const {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('admin')
-    .setDescription('Lista todos os comandos administrativos do bot'),
+    .setDescription('Painel administrativo da Família MoChavãO'),
 
   async execute(interaction) {
     const member = interaction.member;
@@ -27,40 +27,41 @@ module.exports = {
 
     const embed = new EmbedBuilder()
       .setColor('#9b59b6')
-      .setTitle('🛠️ Painel Administrativo — MoChavãO')
+      .setTitle('🛠️ Painel Administrativo — Família MoChavãO')
       .setDescription(
         '**Comandos administrativos disponíveis**\n\n' +
 
-        '👥 **Sistema de Gerenciamento**\n' +
-        '`/familia adicionar` — Adiciona membro (**cargo obrigatório**)\n' +
-        '`/familia atualizar` — Atualiza dados (cargo, whatsapp, **nome real**)\n' +
+        '👥 **Gerenciamento da Família**\n' +
+        '`/familia adicionar` — Adiciona membro à família\n' +
         '`/familia remover` — Remove membro da família\n' +
-        '`/familia listar` — Listagem administrativa completa\n\n' +
+        '`/familia listar` — Painel completo de membros\n\n' +
 
         '⚠️ **Sistema de Advertências**\n' +
-        '`/adv aplicar <usuário> <motivo> <provas>` — Aplica advertência\n' +
-        '`/adv retirar <usuário>` — Remove última advertência\n' +
-        '• Ao atingir **3 advertências**, exige decisão administrativa\n\n' +
+        '`/adv aplicar <usuário> <motivo> [provas]` — Aplica advertência\n' +
+        '`/adv retirar <usuário>` — Remove última advertência ativa\n' +
+        '• **3 advertências ⇒ blacklist automática de 5 dias**\n\n' +
 
         '⛔ **Sistema de Blacklist**\n' +
-        '`/blacklist <usuário> <motivo> <provas>` — Blacklist temporária\n' +
+        '`/blacklist <usuário> <dias> <motivo> [provas]` — Blacklist temporária\n' +
         '`/blackperm <usuário> <motivo> <provas>` — Blacklist permanente\n' +
-        '`/rblacklist <usuário>` — Remove blacklist\n\n' +
+        '`/rblacklist <usuário>` — Remove blacklist (restrições aplicáveis)\n\n' +
 
-        '📝 **Sistema de Inscrição**\n' +
+        '📝 **Sistema de Inscrições**\n' +
         '`/inscrever` — Candidato se inscreve\n' +
-        '`/verinscricao` — Ver inscrições pendentes\n' +
-        '`/inscricao aprovar <usuário>` — Aprova inscrição\n' +
-        '`/inscricao reprovar <usuário> <motivo>` — Reprova inscrição\n\n' +
+        '`/verinscricao` — Visualizar inscrições pendentes\n' +
+        '`/inscricao aprovar <usuário>` — Aprovar inscrição\n' +
+        '`/inscricao reprovar <usuário> <motivo>` — Reprovar inscrição\n\n' +
 
         '🧪 **Sistema de Teste**\n' +
-        '`/verteste` — Ver membros em teste\n' +
-        '`/teste aprovar <usuário>` — Aprova teste\n' +
-        '`/teste reprovar <usuário> <motivo>` — Reprova teste\n\n' +
+        '`/verteste` — Ver membros em período de teste\n' +
+        '`/teste aprovar <usuário>` — Aprovar teste\n' +
+        '`/teste reprovar <usuário> <motivo>` — Reprovar teste\n\n' +
 
-        '🌐 **Comandos Gerais**\n' +
-        '`/ping` — Status do bot\n' +
-        '`/regras` — Regras oficiais da família\n'
+        '🚧 **Sistemas em Desenvolvimento**\n' +
+        '• Automação de advertências (expiração em 30 dias)\n' +
+        '• Fim automático de blacklist\n' +
+        '• Sistema de histórico disciplinar avançado\n' +
+        '• Economia interna (multas, recompensas, VIPs)\n'
       )
       .setFooter({
         text: 'Sistema Oficial da Família MoChavãO • n2tzz'
@@ -68,7 +69,7 @@ module.exports = {
       .setTimestamp();
 
     await interaction.reply({
-      embeds: [embed],
+      embeds: [embed]
     });
   }
 };

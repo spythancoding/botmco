@@ -1,67 +1,72 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle
+} = require('discord.js');
+
 const {
   lerMembros,
   salvarMembros,
-  adicionarHistorico,
-  lerTestes
+  adicionarHistorico
 } = require('../utils/dataManager');
+
 const {
   isFounder,
   isOwner,
-  isSubOwner
+  isSubOwner,
+  canAddMember
 } = require('../utils/permissions');
 
-// 🎭 Cargos da Família (MAPA para adição)
+const PAGE_SIZE = 10;
+
+// 🎭 Cargos da Família
 const CARGOS_FAMILIA = {
   'Membro': '1313574261041926225',
   'Membro +': '1445295441481564256',
   'Legacy': '1313574259779571845'
 };
 
-// 🎭 Lista de cargos da família (ARRAY para remoção)
 const CARGOS_FAMILIA_IDS = Object.values(CARGOS_FAMILIA);
 
-// ❌ Cargos removidos ao entrar na família
+// ❌ Cargos removidos ao entrar
 const CARGOS_REMOVER_ADICAO = [
   '1449426346823389327', // Amigo
   '1439059436789305395'  // Visitante
 ];
-
-const {
-  canAddMember,
-  canUpdateMember
-} = require('../utils/permissions');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('familia')
     .setDescription('Gerenciamento da Família MoChavãO')
 
-// ================= ADICIONAR =================
-.addSubcommand(sub =>
-  sub.setName('adicionar')
-    .setDescription('Adicionar um novo membro à família')
-    .addUserOption(opt =>
-      opt.setName('usuario')
-        .setDescription('Usuário a ser adicionado')
-        .setRequired(true)
-    )
-    .addStringOption(opt =>
-      opt.setName('cargo')
-        .setDescription('Cargo inicial do membro')
-        .setRequired(true)
-        .addChoices(
-          { name: 'Legacy', value: 'Legacy' },
-          { name: 'Membro +', value: 'Membro +' },
-          { name: 'Membro', value: 'Membro' }
+    // ================= ADICIONAR =================
+    .addSubcommand(sub =>
+      sub.setName('adicionar')
+        .setDescription('Adicionar um novo membro à família')
+        .addUserOption(opt =>
+          opt.setName('usuario')
+            .setDescription('Usuário a ser adicionado')
+            .setRequired(true)
+        )
+        .addStringOption(opt =>
+          opt.setName('cargo')
+            .setDescription('Cargo inicial do membro')
+            .setRequired(true)
+            .addChoices(
+              { name: 'Legacy', value: 'Legacy' },
+              { name: 'Membro +', value: 'Membro +' },
+              { name: 'Membro', value: 'Membro' }
+            )
+        )
+        .addStringOption(opt =>
+          opt.setName('whatsapp')
+            .setDescription('Número de WhatsApp (opcional)')
+            .setRequired(false)
         )
     )
-    .addStringOption(opt =>
-      opt.setName('whatsapp')
-        .setDescription('Número de WhatsApp (opcional)')
-        .setRequired(false)
-    )
-)
+
     // ================= LISTAR =================
     .addSubcommand(sub =>
       sub.setName('listar')
@@ -77,17 +82,13 @@ module.exports = {
             .setDescription('Membro')
             .setRequired(true)
         )
-    ),   
+    ),
 
   async execute(interaction) {
     const member = interaction.member;
 
-    // 🔐 PERMISSÃO
-    if (
-      !isFounder(member) &&
-      !isOwner(member) &&
-      !isSubOwner(member)
-    ) {
+    // 🔐 PERMISSÃO GLOBAL
+    if (!isFounder(member) && !isOwner(member) && !isSubOwner(member)) {
       return interaction.reply({
         content: '❌ Você não tem permissão para usar este comando.',
         ephemeral: true
@@ -95,11 +96,15 @@ module.exports = {
     }
 
     const sub = interaction.options.getSubcommand();
-
-    // ================= /familia adicionar =================
+// =====================================================
+// ================= /familia adicionar =================
+// =====================================================
 if (sub === 'adicionar') {
   if (!canAddMember(interaction.member)) {
-    return interaction.reply({ content: '❌ Sem permissão.', ephemeral: true });
+    return interaction.reply({
+      content: '❌ Sem permissão.',
+      ephemeral: true
+    });
   }
 
   const usuario = interaction.options.getUser('usuario');
@@ -108,6 +113,7 @@ if (sub === 'adicionar') {
 
   const membros = lerMembros();
 
+  // 🔎 Validação no sistema interno
   if (membros[usuario.id]) {
     return interaction.reply({
       content: '⚠️ Usuário já é membro da família.',
@@ -124,13 +130,15 @@ if (sub === 'adicionar') {
     });
   }
 
-  // 👤 Busca o membro no servidor
-  const guildMember = await interaction.guild.members.fetch(usuario.id).catch(() => null);
+  // 👤 Tenta buscar no servidor (pode não estar mais lá)
+  const guildMember = await interaction.guild.members
+    .fetch(usuario.id)
+    .catch(() => null);
 
-  // 🔄 Atualização de cargos no Discord
+  // 🎭 Atualização de cargos (somente se estiver no servidor)
   if (guildMember) {
     try {
-      // Remove Amigo e Visitante SE TIVER
+      // ❌ Remove Amigo / Visitante se tiver
       const cargosParaRemover = CARGOS_REMOVER_ADICAO.filter(cargoId =>
         guildMember.roles.cache.has(cargoId)
       );
@@ -139,17 +147,16 @@ if (sub === 'adicionar') {
         await guildMember.roles.remove(cargosParaRemover);
       }
 
-      // Adiciona o cargo da família
+      // ➕ Aplica cargo da família
       if (!guildMember.roles.cache.has(cargoId)) {
         await guildMember.roles.add(cargoId);
       }
-
     } catch (err) {
-      console.error('Erro ao atualizar cargos:', err);
+      console.warn('Erro ao atualizar cargos do novo membro:', err);
     }
   }
 
-  // 💾 Salva no sistema
+  // 💾 Salva no sistema interno (SEMPRE)
   membros[usuario.id] = {
     nomeDiscord: usuario.username,
     cargo: cargoEscolhido,
@@ -160,19 +167,21 @@ if (sub === 'adicionar') {
 
   salvarMembros(membros);
 
+  // 📜 Histórico administrativo
   adicionarHistorico({
     acao: 'ADICIONAR_MEMBRO',
     executor: interaction.user.id,
     alvo: usuario.id
   });
 
-  // 📩 EMBED DM PARA O USUÁRIO
-  const embedDM = new EmbedBuilder()
+  // 📩 DM DE BOAS-VINDAS (não trava se DM fechada)
+  try {
+  const embedBoasVindas = new EmbedBuilder()
     .setColor('#2ecc71')
     .setTitle('🏴 Bem-vindo à Família MoChavãO')
     .setDescription(
-      `Olá, <@${usuario.id}>!\n\n` +
-      `Você foi **adicionado oficialmente** à **Família MoChavãO**.`
+      `Você foi **adicionado oficialmente** à família.\n\n` +
+      `A partir deste momento, você passa a representar o nome **MoChavãO** dentro e fora do servidor.`
     )
     .addFields(
       {
@@ -181,218 +190,327 @@ if (sub === 'adicionar') {
         inline: true
       },
       {
-        name: '📜 Informações',
-        value: 'Seus cargos anteriores foram removidos automaticamente.',
+        name: '📜 Orientações',
+        value:
+          '• Respeite a hierarquia\n' +
+          '• Siga as regras da família\n' +
+          '• Honre o nome que você carrega',
         inline: false
       }
     )
-    .setFooter({ text: 'Família MoChavãO • Sistema Oficial' })
+    .setFooter({ text: 'Administração da Família MoChavãO' })
     .setTimestamp();
 
-  try {
-    await usuario.send({ embeds: [embedDM] });
-  } catch (err) {
-    console.warn(`DM fechada para ${usuario.username}`);
-  }
-
-  // 📢 EMBED PARA O ADMINISTRADOR
-  const embedAdmin = new EmbedBuilder()
-    .setColor('#27ae60')
-    .setTitle('✅ Membro adicionado à família')
-    .addFields(
-      {
-        name: '👤 Novo membro',
-        value: `<@${usuario.id}> (${usuario.username})`,
-        inline: false
-      },
-      {
-        name: '🏷️ Cargo aplicado',
-        value: cargoEscolhido,
-        inline: true
-      },
-      {
-        name: '👮 Adicionado por',
-        value: `<@${interaction.user.id}>`,
-        inline: true
-      }
-    )
-    .setFooter({ text: 'Sistema Oficial da Família MoChavãO • n2tzz' })
-    .setTimestamp();
-
-  return interaction.reply({ embeds: [embedAdmin] });
+  await usuario.send({ embeds: [embedBoasVindas] });
+} catch {
+  // DM fechada → ignora
 }
 
 
-    // ================= /familia listar =================
+  // 📢 Confirmação ao administrador
+  return interaction.reply({
+    embeds: [
+      new EmbedBuilder()
+        .setColor('#27ae60')
+        .setTitle('✅ Membro adicionado à família')
+        .addFields(
+          {
+            name: '👤 Usuário',
+            value: `<@${usuario.id}> (${usuario.username})`,
+            inline: false
+          },
+          {
+            name: '🏷️ Cargo',
+            value: cargoEscolhido,
+            inline: true
+          },
+          {
+            name: '👮 Adicionado por',
+            value: `<@${interaction.user.id}>`,
+            inline: true
+          },
+          {
+            name: '📌 Situação no servidor',
+            value: guildMember
+              ? 'Cargos atualizados com sucesso.'
+              : 'Usuário não está no servidor. Registro salvo no sistema.',
+            inline: false
+          }
+        )
+        .setFooter({ text: 'Sistema Oficial da Família MoChavãO • n2tzz' })
+        .setTimestamp()
+    ]
+  });
+}
+
+
+    // =====================================================
+    // ================= /familia listar ===================
+    // =====================================================
     if (sub === 'listar') {
-  if (!canAddMember(interaction.member)) {
-    return interaction.reply({ content: '❌ Sem permissão.' });
-  }
+      const membros = lerMembros();
+      const lista = Object.entries(membros);
 
-  const membros = lerMembros();
-  const lista = Object.entries(membros);
+      if (!lista.length) {
+        return interaction.reply({ content: '⚠️ Nenhum membro cadastrado.' });
+      }
 
-  if (lista.length === 0) {
-    return interaction.reply({ content: '⚠️ Nenhum membro cadastrado.' });
-  }
+      const porCargo = {
+        Dono: [],
+        'Sub Dono': [],
+        Diretor: [],
+        Suporte: [],
+        'Membro +': [],
+        Membro: [],
+        Legacy: []
+      };
 
-  const cargosOrdem = [
-    { nome: 'Dono', emoji: '👑' },
-    { nome: 'Sub Dono', emoji: '🟣' },
-    { nome: 'Diretor', emoji: '🎯' },
-    { nome: 'Suporte', emoji: '🛠️' },
-    { nome: 'Membro +', emoji: '⭐' },
-    { nome: 'Membro', emoji: '👤' }
-  ];
+      for (const [id, dados] of lista) {
+        if (porCargo[dados.cargo]) porCargo[dados.cargo].push(id);
+      }
 
-  const embed = new EmbedBuilder()
-    .setColor('#9b59b6')
-    .setTitle('🏴 Família MoChavãO — Listagem Administrativa')
-    .setDescription('📋 **Dados completos de todos os membros registrados**')
-    .setFooter({
-      text: `Total de membros: ${lista.length} • Sistema criado por n2tzz`
-    })
-    .setTimestamp();
+      let visualizacao = 'dashboard';
+      let pagina = { membro: 0, membro_plus: 0, legacy: 0 };
 
-  for (const cargo of cargosOrdem) {
-    const membrosDoCargo = lista.filter(([, m]) => m.cargo === cargo.nome);
+      const gerarDashboard = () =>
+        new EmbedBuilder()
+          .setColor('#9b59b6')
+          .setTitle('🏴 Família MoChavãO — Painel Geral')
+          .setDescription(
+            `👑 Dono: **${porCargo.Dono.length}**\n` +
+            `🟣 Sub Dono: **${porCargo['Sub Dono'].length}**\n` +
+            `🎯 Diretor: **${porCargo.Diretor.length}**\n` +
+            `🛠️ Suporte: **${porCargo.Suporte.length}**\n\n` +
+            `⭐ Membro +: **${porCargo['Membro +'].length}**\n` +
+            `👤 Membro: **${porCargo.Membro.length}**\n\n` +
+            `🕯️ Legacy: **${porCargo.Legacy.length}**`
+          )
+          .setFooter({ text: `Total de membros: ${lista.length}` })
+          .setTimestamp();
 
-    if (membrosDoCargo.length === 0) continue;
+      const gerarLista = (titulo, cor, ids, paginaAtual) => {
+        const total = Math.ceil(ids.length / PAGE_SIZE) || 1;
+        const inicio = paginaAtual * PAGE_SIZE;
+        const fim = inicio + PAGE_SIZE;
 
-    let texto = '';
+        return new EmbedBuilder()
+          .setColor(cor)
+          .setTitle(`${titulo} — Página ${paginaAtual + 1}/${total}`)
+          .setDescription(ids.slice(inicio, fim).map(id => `👤 <@${id}>`).join('\n'))
+          .setTimestamp();
+      };
 
-    for (const [id, dados] of membrosDoCargo) {
-      const data = new Date(dados.dataEntrada).toLocaleDateString('pt-BR');
+      const botoesDashboard = (noPainel = false) =>
+        new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('dash').setLabel('📊 Painel').setStyle(ButtonStyle.Primary).setDisabled(noPainel),
+          new ButtonBuilder().setCustomId('lideranca').setLabel('👑 Liderança').setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder().setCustomId('membro_plus').setLabel('⭐ Membro +').setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder().setCustomId('membro').setLabel('👤 Membro').setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder().setCustomId('legacy').setLabel('🕯️ Legacy').setStyle(ButtonStyle.Secondary)
+        );
 
-      texto +=
-        `👤 <@${id}> (${dados.nomeDiscord})\n` +
-        `🪪 Nome real: ${dados.nomeReal ?? 'Não informado'}\n` +
-        `📱 WhatsApp: ${dados.whatsapp ?? 'Não informado'}\n` +
-        `📅 Entrada: ${data}\n` +
-        `➕ Adicionado por: <@${dados.adicionadoPor}>\n\n`;
+      const botoesPag = (paginaAtual, total) =>
+        new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('voltar').setLabel('⬅️ Voltar').setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder().setCustomId('prev').setLabel('⬅️').setStyle(ButtonStyle.Primary).setDisabled(paginaAtual === 0),
+          new ButtonBuilder().setCustomId('next').setLabel('➡️').setStyle(ButtonStyle.Primary).setDisabled(paginaAtual >= total - 1)
+        );
 
+      const msg = await interaction.reply({
+        embeds: [gerarDashboard()],
+        components: [botoesDashboard(true)],
+        fetchReply: true
+      });
+
+      const collector = msg.createMessageComponentCollector({ time: 300000 });
+
+      collector.on('collect', async i => {
+        if (i.user.id !== interaction.user.id) {
+          return i.reply({ content: '❌ Apenas quem executou pode usar.', ephemeral: true });
+        }
+
+        let embed, components;
+
+        if (i.customId === 'dash' || i.customId === 'voltar') {
+          visualizacao = 'dashboard';
+          embed = gerarDashboard();
+          components = [botoesDashboard(true)];
+        }
+
+        if (i.customId === 'lideranca') {
+          visualizacao = 'lideranca';
+          embed = new EmbedBuilder()
+            .setColor('#f1c40f')
+            .setTitle('👑 Liderança')
+            .setDescription(
+              [...porCargo.Dono, ...porCargo['Sub Dono'], ...porCargo.Diretor, ...porCargo.Suporte]
+                .map(id => `👤 <@${id}>`).join('\n') || 'Nenhum membro.'
+            );
+          components = [botoesDashboard(false)];
+        }
+
+        if (i.customId === 'membro_plus') {
+          visualizacao = 'membro_plus';
+          embed = gerarLista('⭐ Membro +', '#2ecc71', porCargo['Membro +'], pagina.membro_plus);
+          components = [
+            botoesDashboard(false),
+            botoesPag(pagina.membro_plus, Math.ceil(porCargo['Membro +'].length / PAGE_SIZE))
+          ];
+        }
+
+        if (i.customId === 'membro') {
+          visualizacao = 'membro';
+          embed = gerarLista('👤 Membro', '#95a5a6', porCargo.Membro, pagina.membro);
+          components = [
+            botoesDashboard(false),
+            botoesPag(pagina.membro, Math.ceil(porCargo.Membro.length / PAGE_SIZE))
+          ];
+        }
+
+        if (i.customId === 'legacy') {
+          visualizacao = 'legacy';
+          embed = gerarLista('🕯️ Legacy', '#bdc3c7', porCargo.Legacy, pagina.legacy);
+          components = [
+            botoesDashboard(false),
+            botoesPag(pagina.legacy, Math.ceil(porCargo.Legacy.length / PAGE_SIZE))
+          ];
+        }
+
+        if (i.customId === 'prev' || i.customId === 'next') {
+          const dir = i.customId === 'next' ? 1 : -1;
+          pagina[visualizacao] += dir;
+
+          if (visualizacao === 'membro') embed = gerarLista('👤 Membro', '#95a5a6', porCargo.Membro, pagina.membro);
+          if (visualizacao === 'membro_plus') embed = gerarLista('⭐ Membro +', '#2ecc71', porCargo['Membro +'], pagina.membro_plus);
+          if (visualizacao === 'legacy') embed = gerarLista('🕯️ Legacy', '#bdc3c7', porCargo.Legacy, pagina.legacy);
+
+          components = [
+            botoesDashboard(false),
+            botoesPag(pagina[visualizacao], Math.ceil(porCargo[visualizacao === 'membro_plus' ? 'Membro +' : visualizacao.charAt(0).toUpperCase() + visualizacao.slice(1)]?.length / PAGE_SIZE))
+          ];
+        }
+
+        await i.update({ embeds: [embed], components });
+      });
     }
 
-    embed.addFields({
-      name: `${cargo.emoji} ${cargo.nome} (${membrosDoCargo.length})`,
-      value: texto.slice(0, 1024),
-      inline: false
-    });
-  }
-
-  return interaction.reply({ embeds: [embed] });
-}
-    
-    // ================= /familia remover =================
+    // =====================================================
+// ================= /familia remover ==================
+// =====================================================
 if (sub === 'remover') {
   if (!canAddMember(interaction.member)) {
-    return interaction.reply({ content: '❌ Sem permissão.', ephemeral: true });
+    return interaction.reply({
+      content: '❌ Sem permissão.',
+      ephemeral: true
+    });
   }
 
   const usuario = interaction.options.getUser('membro');
   const membros = lerMembros();
 
+  // 🔎 Validação no sistema interno
   if (!membros[usuario.id]) {
-    return interaction.reply({ content: '⚠️ Usuário não é membro da família.', ephemeral: true });
+    return interaction.reply({
+      content: '⚠️ Usuário não é membro da família.',
+      ephemeral: true
+    });
   }
 
-  const guildMember = await interaction.guild.members.fetch(usuario.id).catch(() => null);
+  // 👤 Tenta buscar no servidor (pode não existir mais)
+  const guildMember = await interaction.guild.members
+    .fetch(usuario.id)
+    .catch(() => null);
 
-  // 🔄 Atualização de cargos
-if (guildMember) {
-  try {
-    // 🔍 Filtra apenas os cargos da família que o usuário REALMENTE tem
-    const cargosParaRemover = CARGOS_FAMILIA_IDS.filter(cargoId =>
-      guildMember.roles.cache.has(cargoId)
-    );
+  // 🎭 Atualização de cargos (somente se estiver no servidor)
+  if (guildMember) {
+    try {
+      // ❌ Remove TODOS os cargos da família
+      const cargosParaRemover = CARGOS_FAMILIA_IDS.filter(cargoId =>
+        guildMember.roles.cache.has(cargoId)
+      );
 
+      if (cargosParaRemover.length > 0) {
+        await guildMember.roles.remove(cargosParaRemover);
+      }
 
-    // ❌ Remove todos os cargos de família que ele possuir (1, 2 ou 3)
-    if (cargosParaRemover.length > 0) {
-      await guildMember.roles.remove(cargosParaRemover);
-    }
-
-    // ➕ Aplica o cargo Amigo
-    // ➕ Aplica o cargo Amigo
+      // ➕ Aplica cargo Amigo
       const CARGO_AMIGO = '1449426346823389327';
-
       if (!guildMember.roles.cache.has(CARGO_AMIGO)) {
         await guildMember.roles.add(CARGO_AMIGO);
       }
-
-
     } catch (err) {
-      console.error('Erro ao atualizar cargos:', err);
+      console.warn('Erro ao atualizar cargos do usuário removido:', err);
     }
   }
 
-
-  // 🗑️ Remove do sistema
+  // 🗑️ Remove do sistema interno (SEMPRE)
   delete membros[usuario.id];
   salvarMembros(membros);
 
+  // 📜 Histórico administrativo
   adicionarHistorico({
     acao: 'REMOVER_MEMBRO',
     executor: interaction.user.id,
     alvo: usuario.id
   });
 
-  // 📩 EMBED PARA O USUÁRIO (DM)
-  const embedDM = new EmbedBuilder()
-    .setColor('#e74c3c')
-    .setTitle('❌ Remoção da Família MoChavãO')
-    .setDescription(
-      `Olá, <@${usuario.id}>.\n\n` +
-      `Você foi **removido da Família MoChavãO** por decisão administrativa.`
-    )
-    .addFields(
-      {
-        name: '🔄 Atualização de cargos',
-        value: 'Seus cargos de família foram removidos e o cargo **Amigo** foi aplicado.',
-        inline: false
-      },
-      {
-        name: '📞 Dúvidas',
-        value: 'Caso queira conversar, procure a liderança da família.',
-        inline: false
-      }
-    )
-    .setFooter({ text: 'Família MoChavãO • Sistema Oficial' })
-    .setTimestamp();
-
+  // 📩 DM DE RETIRADA (não trava se DM fechada)
   try {
-    await usuario.send({ embeds: [embedDM] });
-  } catch (err) {
-    console.warn(`DM fechada para ${usuario.username}`);
-  }
-
-  // 📢 EMBED PARA O ADMINISTRADOR
-  const embedAdmin = new EmbedBuilder()
-    .setColor('#c0392b')
-    .setTitle('🗑️ Membro removido da família')
+  const embedRemocao = new EmbedBuilder()
+    .setColor('#e74c3c')
+    .setTitle('❌ Retirada da Família MoChavãO')
+    .setDescription(
+      `Você foi **removido da Família MoChavãO** por decisão administrativa.\n\n` +
+      `Neste momento, você não possui mais vínculo com a família.`
+    )
     .addFields(
       {
-        name: '👤 Usuário removido',
-        value: `<@${usuario.id}> (${usuario.username})`,
-        inline: false
-      },
-      {
-        name: '👮 Removido por',
-        value: `<@${interaction.user.id}>`,
-        inline: false
-      },
-      {
-        name: '📌 Ação realizada',
-        value: 'Cargos de família removidos e cargo **Amigo** aplicado.',
+        name: '📌 Informações importantes',
+        value:
+          '• Seus cargos da família foram removidos\n' +
+          '• O cargo padrão foi aplicado, se aplicável\n' +
+          '• Caso queira esclarecimentos, procure a liderança',
         inline: false
       }
     )
-    .setFooter({ text: 'Sistema Oficial da Família MoChavãO • n2tzz' })
+    .setFooter({ text: 'Administração da Família MoChavãO' })
     .setTimestamp();
 
-  return interaction.reply({ embeds: [embedAdmin] });
+  await usuario.send({ embeds: [embedRemocao] });
+} catch {
+  // DM fechada → ignora
 }
 
+  // 📢 Confirmação ao administrador
+  return interaction.reply({
+    embeds: [
+      new EmbedBuilder()
+        .setColor('#c0392b')
+        .setTitle('🗑️ Membro removido da família')
+        .addFields(
+          {
+            name: '👤 Usuário',
+            value: `<@${usuario.id}> (${usuario.username})`,
+            inline: false
+          },
+          {
+            name: '👮 Removido por',
+            value: `<@${interaction.user.id}>`,
+            inline: false
+          },
+          {
+            name: '📌 Ação',
+            value: guildMember
+              ? 'Cargos removidos e cargo **Amigo** aplicado.'
+              : 'Usuário já havia saído do servidor. Registro removido do sistema.',
+            inline: false
+          }
+        )
+        .setFooter({ text: 'Sistema Oficial da Família MoChavãO • n2tzz' })
+        .setTimestamp()
+    ]
+  });
+}
 
   }
 };
