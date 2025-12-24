@@ -13,34 +13,50 @@ module.exports = {
     .setName('blackperm')
     .setDescription('Aplica blacklist permanente (irreversível)')
     .addUserOption(o =>
-      o.setName('usuario').setDescription('Usuário').setRequired(true)
+      o.setName('usuario')
+        .setDescription('Usuário')
+        .setRequired(true)
     )
     .addStringOption(o =>
-      o.setName('motivo').setDescription('Motivo').setRequired(true)
+      o.setName('motivo')
+        .setDescription('Motivo')
+        .setRequired(true)
     )
     .addStringOption(o =>
-      o.setName('provas').setDescription('Links das provas').setRequired(true)
+      o.setName('provas')
+        .setDescription('Provas (link) – opcional')
+        .setRequired(false)
     ),
 
   async execute(interaction) {
+    // 🔐 Permissão
     if (!isFounder(interaction.member) && !isOwner(interaction.member)) {
-      return interaction.reply({ content: '❌ Acesso restrito.', ephemeral: true });
+      return interaction.reply({
+        content: '❌ Acesso restrito.',
+        ephemeral: true
+      });
     }
+
+    // ⏳ Segura a interaction (cargos + IO)
+    await interaction.deferReply();
 
     const user = interaction.options.getUser('usuario');
     const motivo = interaction.options.getString('motivo');
-    const provas = interaction.options.getString('provas');
+    const provasInput = interaction.options.getString('provas');
+    const provas = provasInput || 'Não informadas';
 
-    if (!isLinkValido(provas)) {
-      return interaction.reply({ content: '⚠️ Provas devem ser links válidos.', ephemeral: true });
+    // 🔎 Valida provas SOMENTE se informadas
+    if (provasInput && !isLinkValido(provasInput)) {
+      return interaction.editReply({
+        content: '⚠️ Provas devem ser links válidos.'
+      });
     }
 
     const blacklist = lerBlacklist();
 
     if (blacklist[user.id]?.ativa) {
-      return interaction.reply({
-        content: '⚠️ Este usuário já possui blacklist ativa.',
-        ephemeral: true
+      return interaction.editReply({
+        content: '⚠️ Este usuário já possui blacklist ativa.'
       });
     }
 
@@ -52,22 +68,23 @@ module.exports = {
       provas,
       aplicadoPor: interaction.user.id,
       data: new Date().toISOString(),
-      ativa: true
+      ativa: true,
+      origem: 'MANUAL'
     };
 
     salvarBlacklist(blacklist);
 
-    // 🎭 CARGOS (se estiver no servidor)
+    // 🎭 Atualização de cargos
     const guildMember = await interaction.guild.members.fetch(user.id).catch(() => null);
     if (guildMember) {
-      const cargosRemover = guildMember.roles.cache.filter(r =>
-        r.id !== interaction.guild.id && !r.managed
+      const cargosRemover = guildMember.roles.cache.filter(
+        r => r.id !== interaction.guild.id && !r.managed
       );
       await guildMember.roles.remove(cargosRemover);
       await guildMember.roles.add(BLACKPERM_ROLE_ID);
     }
 
-    // ☠️ DM FINAL (SEM PROVAS)
+    // ☠️ DM FINAL (sem provas)
     try {
       await user.send({
         embeds: [
@@ -79,18 +96,26 @@ module.exports = {
               `Esta decisão é **IRREVERSÍVEL**.\n` +
               `Não haverá revisão ou recurso.`
             )
-            .addFields({ name: '📌 Motivo', value: motivo })
+            .addFields(
+              { name: '📌 Motivo', value: motivo }
+            )
+            .setFooter({ text: 'Administração da Família MoChavãO' })
             .setTimestamp()
         ]
       });
     } catch {}
 
-    return interaction.reply({
+    // ✅ CONFIRMAÇÃO AO ADMINISTRADOR
+    return interaction.editReply({
       embeds: [
         new EmbedBuilder()
           .setColor('#000000')
           .setTitle('☠️ Blacklist Permanente Aplicada')
-          .setDescription(`O usuário <@${user.id}> foi removido definitivamente.`)
+          .setDescription(
+            `O usuário <@${user.id}> foi **removido definitivamente** da família.`
+          )
+          .setFooter({ text: 'Sistema Disciplinar • Família MoChavãO' })
+          .setTimestamp()
       ]
     });
   }

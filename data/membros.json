@@ -5,16 +5,6 @@
     "adicionadoPor": "353946672549724161",
     "dataEntrada": "2025-12-17T18:54:24.612Z"
   },
-  "229733619575291905": {
-    "nomeDiscord": "galdon",
-    "cargo": "Dono",
-    "whatsapp": "x",
-    "dataEntrada": "2025-12-17T20:58:41.036Z",
-    "adicionadoPor": "353946672549724161",
-    "nomeReal": "Gabriel",
-    "idade": "28",
-    "nickGame": "Galdon_MoChavaO"
-  },
   "1182289716729630823": {
     "nomeDiscord": "fboliver",
     "cargo": "Membro",
@@ -31,7 +21,7 @@
   },
   "1073239538320814141": {
     "nomeDiscord": "rf_cpx7",
-    "cargo": "Suporte",
+    "cargo": "Membro",
     "whatsapp": "Não informado",
     "dataEntrada": "2025-12-17T20:59:08.449Z",
     "adicionadoPor": "353946672549724161"
@@ -155,42 +145,17 @@
     "dataEntrada": "2025-12-22T03:18:05.482Z",
     "adicionadoPor": "353946672549724161"
   },
-  "353946672549724161": {
-    "nomeDiscord": "spythancoding",
-    "cargo": "Dono",
-    "whatsapp": "11962963616",
-    "dataEntrada": "2025-12-22T03:36:59.155Z",
-    "adicionadoPor": "353946672549724161",
-    "nomeReal": "Nathan Ribeiro",
-    "nickGame": "n2tzz",
-    "idade": "22",
-    "advertencias": [
-      {
-        "motivo": "DM em membros",
-        "provas": "Sem provas",
-        "aplicadaPor": "spythancoding",
-        "dataAplicacao": "2025-12-22T04:42:02.033Z",
-        "status": "removida",
-        "observacaoStatus": "Removida manualmente pela administração",
-        "dataRemocao": "2025-12-22T04:58:43.422Z"
-      },
-      {
-        "motivo": "Insurgencia",
-        "provas": ".",
-        "aplicadaPor": "spythancoding",
-        "dataAplicacao": "2025-12-22T04:44:13.122Z",
-        "status": "removida",
-        "observacaoStatus": "Removida manualmente pela administração",
-        "dataRemocao": "2025-12-22T04:58:35.238Z"
-      },
-      {
-        "motivo": null,
-        "provas": null,
-        "aplicadaPor": "spythancoding",
-        "dataAplicacao": "2025-12-22T04:46:48.741Z",
-        "status": "removida",
-        "observacaoStatus": "Removida manualmente pela administração"
-      }
-    ]
+  "1003677842325901383": {
+    "nomeDiscord": "phh_007",
+    "cargo": "Membro",
+    "whatsapp": "Não informado",
+    "dataEntrada": "2025-12-23T14:35:00.338Z",
+    "adicionadoPor": "353946672549724161"
+  },
+  "1027786810799181864": {
+    "nomeDiscord": "skilo_07",
+    "cargo": "Membro",
+    "adicionadoPor": "471540314977468426",
+    "dataEntrada": "2025-12-23T22:35:41.729Z"
   }
 }

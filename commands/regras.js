@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { regrasEmbed } = require('../embeds/regrasEmbed'); // Importa o embed
-const cooldowns = new Map(); // Armazena o tempo do último envio por servidor
+const { regrasEmbed } = require('../embeds/regrasEmbed');
+const cooldowns = new Map();
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -11,12 +11,11 @@ module.exports = {
     const guildId = interaction.guild.id;
     const agora = Date.now();
 
-    // Se já houver cooldown
+    // Cooldown por servidor
     if (cooldowns.has(guildId)) {
       const ultimoEnvio = cooldowns.get(guildId);
       const diff = agora - ultimoEnvio;
 
-      // 60 minutos = 3600000 ms
       if (diff < 3600000) {
         const restante = Math.ceil((3600000 - diff) / 60000);
         return interaction.reply({
@@ -26,10 +25,18 @@ module.exports = {
       }
     }
 
-    // Envia o embed
-    await interaction.reply({ embeds: [regrasEmbed] });
+    // Confirmação invisível (ninguém vê quem usou o comando)
+    await interaction.reply({
+      content: '📜 Regras enviadas com sucesso.',
+      ephemeral: true
+    });
 
-    // Atualiza o cooldown
+    // Envia o embed diretamente no canal
+    await interaction.channel.send({
+      embeds: [regrasEmbed]
+    });
+
+    // Atualiza cooldown
     cooldowns.set(guildId, agora);
   }
 };

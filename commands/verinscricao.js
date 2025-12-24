@@ -1,15 +1,22 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { lerInscritos } = require('../utils/dataManager');
+const { getInscricao } = require('../utils/dataManager');
 const {
   isFounder,
   isOwner,
   isSubOwner
 } = require('../utils/permissions');
 
+const safe = v => v ? String(v) : 'Não informado';
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('verinscricao')
-    .setDescription('Ver inscrições pendentes'),
+    .setDescription('Ver inscrição detalhada de um usuário')
+    .addUserOption(opt =>
+      opt.setName('usuario')
+        .setDescription('Usuário inscrito')
+        .setRequired(true)
+    ),
 
   async execute(interaction) {
     const member = interaction.member;
@@ -20,37 +27,57 @@ module.exports = {
       !isSubOwner(member)
     ) {
       return interaction.reply({
-        content: '❌ Você não tem permissão para usar este comando.',
+        content: '❌ Você não tem permissão.',
         ephemeral: true
       });
     }
 
-    const inscritos = Object.values(lerInscritos())
-      .filter(i => i.status === 'pendente_inscricao');
+    const usuario = interaction.options.getUser('usuario');
+    const inscricao = getInscricao(usuario.id);
 
-    if (!inscritos.length) {
+    if (!inscricao || inscricao.status !== 'pendente_inscricao') {
       return interaction.reply({
-        content: '📭 Nenhuma inscrição pendente.',
+        content: '❌ Inscrição pendente não encontrada para este usuário.',
         ephemeral: true
       });
     }
 
-    const embeds = inscritos.map((i, idx) =>
-      new EmbedBuilder()
-        .setColor('#9b59b6')
-        .setTitle(`📋 Inscrição #${idx + 1}`)
-        .addFields(
-          { name: '👤 Usuário', value: `<@${i.userId}>`, inline: true },
-          { name: '🎮 Nick', value: i.nick, inline: true },
-          { name: '⭐ Nível', value: i.nivel, inline: true },
-          { name: '🎂 Idade', value: i.idade, inline: true },
-          { name: '🛡️ Líder Org', value: i.liderOrg, inline: true },
-          { name: '🤝 Indicação', value: i.indicacao || 'Nenhuma', inline: true }
-        )
-        .setFooter({ text: 'Status: Pendente' })
-        .setTimestamp()
-    );
+    const d = inscricao.dados;
 
-    await interaction.reply({ embeds });
+    const embed = new EmbedBuilder()
+      .setColor('#e74c3c')
+      .setTitle('📥 Nova Inscrição Recebida')
+      .setDescription(
+        'Uma nova candidatura foi enviada para a **Família MoChavãO**.\n' +
+        'Analise os dados abaixo com atenção.'
+      )
+      .addFields(
+        { name: '🆔 Discord ID', value: usuario.id },
+
+        { name: '👤 Identificação', value:
+          `**Nick:** ${safe(d.nick)}\n` +
+          `**Nome:** ${safe(d.nome)}\n` +
+          `**Idade:** ${safe(d.idade)}`
+        },
+
+        { name: '🎮 Conta no Servidor', value:
+          `**Nível:** ${safe(d.nivelConta)}\n` +
+          `**Horas no /RG:** ${safe(d.horasRG)}\n` +
+          `**Liderança:** ${safe(d.liderOrg)}`
+        },
+
+        { name: '🎙️ Comunicação', value:
+          `**Microfone:** ${safe(d.microfone)}\n` +
+          `**Call:** ${safe(d.call)}`
+        },
+
+        { name: '⏰ Disponibilidade', value: safe(d.horario) },
+
+        { name: '📝 Observações', value: safe(d.observacoes) }
+      )
+      .setFooter({ text: 'Sistema de Inscrição • Família MoChavãO' })
+      .setTimestamp();
+
+    await interaction.reply({ embeds: [embed] });
   }
 };

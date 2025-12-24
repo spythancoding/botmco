@@ -5,8 +5,17 @@ const {
 
 const {
   lerMembros,
-  salvarMembros
+  salvarMembros,
+  lerBlacklist,
+  salvarBlacklist
 } = require('../utils/dataManager');
+
+const {
+  aplicarAdvertencia,
+  removerAdvertencia,
+  zerarAdvertenciasAposBlacklist,
+  podeReceberAdvertencia
+} = require('../utils/advertenciasManager');
 
 const {
   isFounder,
@@ -17,6 +26,7 @@ const {
 const CANAL_PUNICOES_ID = '1313574369980715131';
 const BLACKLIST_TEMP_ROLE_ID = '1451323733129302128';
 
+// 🎭 Cargos de advertência
 const CARGOS_ADV = {
   1: '1436542860408389672',
   2: '1313574318017482774',
@@ -51,7 +61,7 @@ module.exports = {
         )
         .addStringOption(o =>
           o.setName('provas')
-            .setDescription('Link de provas (opcional)')
+            .setDescription('Provas (opcional)')
             .setRequired(false)
         )
     )
@@ -69,13 +79,20 @@ module.exports = {
     ),
 
   async execute(interaction) {
+    // 🔐 Permissão
     if (
       !isFounder(interaction.member) &&
       !isOwner(interaction.member) &&
       !isSubOwner(interaction.member)
     ) {
-      return interaction.reply({ content: '❌ Sem permissão.', ephemeral: true });
+      return interaction.reply({
+        content: '❌ Sem permissão.',
+        ephemeral: true
+      });
     }
+
+    // ⏳ SEGURA A INTERACTION (OBRIGATÓRIO)
+    await interaction.deferReply();
 
     const sub = interaction.options.getSubcommand();
     const membros = lerMembros();
@@ -89,31 +106,34 @@ module.exports = {
       const provas = interaction.options.getString('provas') || 'Não informadas';
 
       const membro = membros[user.id];
-      if (!membro) {
-        return interaction.reply({
-          content: '❌ Usuário não pertence à família.',
-          ephemeral: true
+
+      const validacao = podeReceberAdvertencia(membro, user.id);
+      if (!validacao.permitido) {
+        return interaction.editReply({
+          content: `❌ ${validacao.erro}`
         });
       }
 
-      if (!membro.advertencias) membro.advertencias = [];
-
-      membro.advertencias.push({
+      const resultado = aplicarAdvertencia({
+        membros,
+        userId: user.id,
         motivo,
         provas,
-        aplicadaPor: interaction.user.tag,
-        dataAplicacao: new Date().toISOString(),
-        status: 'ativa'
+        aplicadaPor: interaction.user.tag
       });
 
-      const advertenciasAtivas = membro.advertencias.filter(a => a.status === 'ativa');
-      const total = advertenciasAtivas.length;
+      if (!resultado.sucesso) {
+        return interaction.editReply({
+          content: `❌ ${resultado.erro}`
+        });
+      }
 
-      salvarMembros(membros);
+      const total = resultado.totalAtivas;
+      const guildMember = await interaction.guild.members
+        .fetch(user.id)
+        .catch(() => null);
 
-      const guildMember = await interaction.guild.members.fetch(user.id).catch(() => null);
-
-      // 🎭 CARGOS DE ADVERTÊNCIA
+      // 🎭 Atualiza cargos de advertência
       if (guildMember) {
         for (const id of Object.values(CARGOS_ADV)) {
           if (guildMember.roles.cache.has(id)) {
@@ -126,31 +146,36 @@ module.exports = {
         }
       }
 
-      // 📢 EMBED PÚBLICO
+      // ================= 📢 EMBED PÚBLICO =================
       const canal = interaction.guild.channels.cache.get(CANAL_PUNICOES_ID);
       if (canal) {
-        const tituloPublico =
-          total === 1
-            ? '⚠️ Advertência Aplicada (1ª)'
-            : total === 2
-            ? '🚨 Advertência Reincidente (2ª)'
-            : '⛔ Limite de Advertências Atingido';
-
-        const embedPublico = new EmbedBuilder()
-          .setColor(total === 1 ? '#f1c40f' : total === 2 ? '#e67e22' : '#c0392b')
-          .setTitle(tituloPublico)
-          .addFields(
-            { name: '👤 Usuário', value: `<@${user.id}>` },
-            { name: '📄 Motivo', value: motivo },
-            { name: '📊 Advertências ativas', value: `${total}` }
-          )
-          .setFooter({ text: 'Sistema Disciplinar • Família MoChavãO' })
-          .setTimestamp();
-
-        canal.send({ embeds: [embedPublico] });
+        canal.send({
+          embeds: [
+            new EmbedBuilder()
+              .setColor(
+                total === 1 ? '#f1c40f' :
+                total === 2 ? '#e67e22' :
+                '#c0392b'
+              )
+              .setTitle(
+                total === 1
+                  ? '⚠️ Advertência Aplicada'
+                  : total === 2
+                  ? '🚨 Advertência Reincidente'
+                  : '⛔ Limite de Advertências Atingido'
+              )
+              .addFields(
+                { name: '👤 Membro', value: `<@${user.id}>` },
+                { name: '📄 Motivo', value: motivo },
+                { name: '📊 Advertências ativas', value: `${total} / 3` }
+              )
+              .setFooter({ text: 'Sistema Disciplinar • Família MoChavãO' })
+              .setTimestamp()
+          ]
+        });
       }
 
-      // 📩 DM PROGRESSIVA
+      // ================= 📩 DM PROGRESSIVA =================
       try {
         let embedDM;
 
@@ -159,9 +184,8 @@ module.exports = {
             .setColor('#f1c40f')
             .setTitle('⚠️ Advertência Registrada')
             .setDescription(
-              `Esta é uma **advertência formal** aplicada ao seu histórico.\n\n` +
-              `📌 Motivo:\n${motivo}\n\n` +
-              `Este aviso tem caráter **preventivo**. Reincidências podem gerar punições mais severas.`
+              `📌 **Motivo:**\n${motivo}\n\n` +
+              `Este aviso tem caráter **preventivo**.`
             );
         }
 
@@ -170,22 +194,18 @@ module.exports = {
             .setColor('#e67e22')
             .setTitle('🚨 Segunda Advertência')
             .setDescription(
-              `Esta é a **segunda advertência ativa** em seu histórico.\n\n` +
-              `📌 Motivo:\n${motivo}\n\n` +
-              `⚠️ **Qualquer nova infração resultará em afastamento automático da família.**`
+              `📌 **Motivo:**\n${motivo}\n\n` +
+              `⚠️ Próxima infração resultará em **afastamento automático**.`
             );
         }
 
         if (total >= 3) {
-          const fim = dataMaisDias(5);
-
           embedDM = new EmbedBuilder()
-            .setColor('#7b0d0d')
-            .setTitle('🚫 RESTRIÇÃO TEMPORÁRIA APLICADA')
+            .setColor('#c0392b')
+            .setTitle('🚫 Afastamento Temporário Aplicado')
             .setDescription(
-              `Você atingiu o limite máximo de advertências permitidas.\n\n` +
-              `Como consequência, foi aplicado um **afastamento automático de 5 dias**.\n\n` +
-              `📅 Retorno previsto: **${fim.toLocaleDateString('pt-BR')}**`
+              `Você atingiu o limite de advertências.\n\n` +
+              `⏳ Afastamento automático de **5 dias** aplicado.`
             );
         }
 
@@ -196,31 +216,44 @@ module.exports = {
         await user.send({ embeds: [embedDM] });
       } catch {}
 
-      // 🚫 BLACKLIST AUTOMÁTICA
+      // ================= 🚫 BLACKLIST AUTOMÁTICA =================
       if (total >= 3 && guildMember) {
-        for (const adv of membro.advertencias) {
-          if (adv.status === 'ativa') {
-            adv.status = 'cumprida';
-            adv.observacaoStatus = 'Cumprida após blacklist automática (5 dias)';
-          }
-        }
-
+        // Zera advertências
+        zerarAdvertenciasAposBlacklist(membro);
         salvarMembros(membros);
 
-        const cargosRemover = guildMember.roles.cache.filter(r =>
-          r.id !== interaction.guild.id && !r.managed
+        // Registra blacklist oficial
+        const blacklist = lerBlacklist();
+        blacklist[user.id] = {
+          userId: user.id,
+          tipo: 'TEMP',
+          dias: 5,
+          inicio: new Date().toISOString(),
+          fim: dataMaisDias(5).toISOString(),
+          motivo: 'Limite de 3 advertências atingido',
+          provas: 'Sistema automático',
+          aplicadoPor: 'SISTEMA (/adv)',
+          ativa: true,
+          origem: 'AUTO'
+        };
+        salvarBlacklist(blacklist);
+
+        // Remove cargos e aplica blacklist
+        const cargosRemover = guildMember.roles.cache.filter(
+          r => r.id !== interaction.guild.id && !r.managed
         );
 
         await guildMember.roles.remove(cargosRemover);
         await guildMember.roles.add(BLACKLIST_TEMP_ROLE_ID);
       }
 
-      return interaction.reply({
+      // ================= ✅ RESPOSTA FINAL =================
+      return interaction.editReply({
         embeds: [
           new EmbedBuilder()
             .setColor('#2ecc71')
-            .setTitle('✅ Advertência aplicada')
-            .setDescription(`Advertência registrada para <@${user.id}>`)
+            .setTitle('✅ Advertência aplicada com sucesso')
+            .setDescription(`O membro <@${user.id}> recebeu a advertência.`)
             .setTimestamp()
         ]
       });
@@ -229,72 +262,34 @@ module.exports = {
     // =====================================================
     // ================= RETIRAR ADVERTÊNCIA ===============
     // =====================================================
-  
-if (sub === 'retirar') {
-  const user = interaction.options.getUser('usuario');
-  const membro = membros[user.id];
+    if (sub === 'retirar') {
+      const user = interaction.options.getUser('usuario');
 
-  if (!membro || !Array.isArray(membro.advertencias)) {
-    return interaction.reply({
-      content: '❌ Este usuário não possui advertências registradas.',
-      ephemeral: true
-    });
-  }
+      const resultado = removerAdvertencia({
+        membros,
+        userId: user.id,
+        removidaPor: interaction.user.tag
+      });
 
-  // Apenas advertências ativas
-  const advertenciasAtivas = membro.advertencias.filter(a => a.status === 'ativa');
-
-  if (advertenciasAtivas.length === 0) {
-    return interaction.reply({
-      content: '❌ Este usuário não possui advertências ativas.',
-      ephemeral: true
-    });
-  }
-
-  // Remove a ÚLTIMA advertência ativa
-  const removida = advertenciasAtivas[advertenciasAtivas.length - 1];
-
-  removida.status = 'removida';
-  removida.observacaoStatus = 'Removida manualmente pela administração';
-  removida.dataRemocao = new Date().toISOString();
-
-  salvarMembros(membros);
-
-  const totalAtivas = membro.advertencias.filter(a => a.status === 'ativa').length;
-
-  // 🎭 Atualiza cargos no Discord
-  const guildMember = await interaction.guild.members.fetch(user.id).catch(() => null);
-
-  if (guildMember) {
-    // Remove todos os cargos de advertência
-    for (const id of Object.values(CARGOS_ADV)) {
-      if (guildMember.roles.cache.has(id)) {
-        await guildMember.roles.remove(id);
+      if (!resultado.sucesso) {
+        return interaction.editReply({
+          content: `❌ ${resultado.erro}`
+        });
       }
+
+      return interaction.editReply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor('#2ecc71')
+            .setTitle('✅ Advertência Removida')
+            .addFields(
+              { name: '👤 Membro', value: `<@${user.id}>` },
+              { name: '📊 Advertências ativas', value: String(resultado.advertenciasAtivas) }
+            )
+            .setFooter({ text: 'Sistema Disciplinar • Família MoChavãO' })
+            .setTimestamp()
+        ]
+      });
     }
-
-    // Reaplica conforme quantidade restante
-    for (let i = 1; i <= Math.min(totalAtivas, 3); i++) {
-      await guildMember.roles.add(CARGOS_ADV[i]);
-    }
-  }
-
-  // 🧾 Blindagem TOTAL do embed
-  const motivoRemovido = removida.motivo || 'Motivo não registrado';
-
-  const embed = new EmbedBuilder()
-    .setColor('#2ecc71')
-    .setTitle('✅ Advertência Removida')
-    .addFields(
-      { name: '👤 Usuário', value: `<@${user.id}>`, inline: false },
-      { name: '📄 Motivo removido', value: motivoRemovido, inline: false },
-      { name: '📊 Advertências ativas', value: String(totalAtivas), inline: false }
-    )
-    .setFooter({ text: 'Sistema Disciplinar • Família MoChavãO' })
-    .setTimestamp();
-
-  return interaction.reply({ embeds: [embed] });
-}
-
   }
 };

@@ -1,8 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { lerMembros } = require('../utils/dataManager');
 
-const DEV_ID = '353946672549724161';
-
 const cargosOrdem = [
   { nome: 'Dono', emoji: '👑', cor: '#f1c40f', peso: 6 },
   { nome: 'Sub Dono', emoji: '🟣', cor: '#9b59b6', peso: 5 },
@@ -38,6 +36,7 @@ module.exports = {
       cargosOrdem.find(c => c.nome === membro.cargo) ||
       cargosOrdem[cargosOrdem.length - 1];
 
+    // ================= DATAS =================
     const dataEntrada = membro.dataEntrada
       ? new Date(membro.dataEntrada).toLocaleDateString('pt-BR')
       : 'Não informado';
@@ -46,8 +45,34 @@ module.exports = {
       ? new Date(membro.dataSaida).toLocaleDateString('pt-BR')
       : '—';
 
-    const totalAdv = membro.advertencias?.length || 0;
+    // ================= ADVERTÊNCIAS =================
+    const advertenciasAtivas =
+      membro.advertencias?.filter(a => a.status === 'ativa') || [];
 
+    const totalAdvAtivas = advertenciasAtivas.length;
+
+    const ultimaAdv =
+      advertenciasAtivas.length > 0
+        ? advertenciasAtivas[advertenciasAtivas.length - 1]
+        : null;
+
+    // ================= BLACKLIST =================
+    let statusBlacklist = '🟢 Regular';
+    let detalheBlacklist = 'Nenhuma punição ativa';
+
+    if (membro.blacklist?.ativa) {
+      if (membro.blacklist.tipo === 'perm') {
+        statusBlacklist = '⛔ Blacklist Permanente';
+        detalheBlacklist = membro.blacklist.motivo || 'Motivo não informado';
+      } else {
+        statusBlacklist = '🚫 Blacklist Temporária';
+        detalheBlacklist =
+          `Até ${new Date(membro.blacklist.fim).toLocaleDateString('pt-BR')}\n` +
+          `Motivo: ${membro.blacklist.motivo || 'Não informado'}`;
+      }
+    }
+
+    // ================= EMBED =================
     const embed = new EmbedBuilder()
       .setColor(cargoInfo.cor)
       .setTitle(`${cargoInfo.emoji} Ficha • ${membro.cargo}`)
@@ -63,10 +88,31 @@ module.exports = {
 
         { name: '🎂 Idade', value: membro.idade || 'Não informado', inline: true },
         { name: '📱 WhatsApp', value: membro.whatsapp || 'Não informado', inline: true },
-        { name: '⚠️ Advertências', value: String(totalAdv), inline: true },
-
         { name: '📅 Entrada', value: dataEntrada, inline: true },
-        { name: '🚪 Saída', value: dataSaida, inline: true }
+
+        {
+          name: '⚠️ Advertências Ativas',
+          value:
+            totalAdvAtivas === 0
+              ? '🟢 Nenhuma'
+              : `🔴 ${totalAdvAtivas} / 3`,
+          inline: true
+        },
+
+        {
+          name: '📄 Última Advertência',
+          value:
+            ultimaAdv
+              ? ultimaAdv.motivo
+              : '—',
+          inline: false
+        },
+
+        {
+          name: '🚫 Status Disciplinar',
+          value: `${statusBlacklist}\n${detalheBlacklist}`,
+          inline: false
+        }
       )
       .setFooter({
         text: `Hierarquia MoChavãO • Nível ${cargoInfo.peso}`

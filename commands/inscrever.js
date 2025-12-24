@@ -1,12 +1,11 @@
 const {
   SlashCommandBuilder,
-  ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle,
-  ActionRowBuilder,
+  EmbedBuilder
 } = require('discord.js');
 
 const { lerMembros } = require('../utils/dataManager');
+
+const INSCRICAO_SITE_URL = 'https://mochavao-inscricao.vercel.app'; // 🔴 ajuste depois
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -22,56 +21,36 @@ module.exports = {
 
     if (membros[interaction.user.id]) {
       return interaction.reply({
-        content: '❌ Você já faz parte da Família **MoChavãO** e não pode criar uma nova inscrição.',
+        content:
+          '❌ Você já faz parte da Família **MoChavãO** e não pode criar uma nova inscrição.',
         ephemeral: true
       });
     }
 
     // ======================
-    // 📋 MODAL DE INSCRIÇÃO
+    // 🔗 LINK PERSONALIZADO
     // ======================
-    const modal = new ModalBuilder()
-      .setCustomId('modal_inscricao')
-      .setTitle('Inscrição - Família MoChavãO');
+    const link = `${INSCRICAO_SITE_URL}?uid=${interaction.user.id}`;
 
-    const nick = new TextInputBuilder()
-      .setCustomId('nick')
-      .setLabel('Nick (in-game)')
-      .setStyle(TextInputStyle.Short)
-      .setRequired(true);
+    const embed = new EmbedBuilder()
+      .setColor('#c0392b')
+      .setTitle('📥 Inscrição • Família MoChavãO')
+      .setDescription(
+        'Para prosseguir com sua inscrição, clique no botão abaixo.\n\n' +
+        '⚠️ **Preencha com atenção** todas as informações solicitadas.'
+      )
+      .addFields({
+        name: '🔗 Link de Inscrição',
+        value: `[Clique aqui para iniciar](${link})`
+      })
+      .setFooter({
+        text: 'Família MoChavãO • Sistema Oficial de Inscrição'
+      })
+      .setTimestamp();
 
-    const nivel = new TextInputBuilder()
-      .setCustomId('nivel')
-      .setLabel('Nível')
-      .setStyle(TextInputStyle.Short)
-      .setRequired(true);
-
-    const idade = new TextInputBuilder()
-      .setCustomId('idade')
-      .setLabel('Idade')
-      .setStyle(TextInputStyle.Short)
-      .setRequired(true);
-
-    const liderOrg = new TextInputBuilder()
-      .setCustomId('lider_org')
-      .setLabel('É líder de org? (sim/não + qual)')
-      .setStyle(TextInputStyle.Short)
-      .setRequired(true);
-
-    const indicacao = new TextInputBuilder()
-      .setCustomId('indicacao')
-      .setLabel('Indicação? (nome ou não)')
-      .setStyle(TextInputStyle.Short)
-      .setRequired(false);
-
-    modal.addComponents(
-      new ActionRowBuilder().addComponents(nick),
-      new ActionRowBuilder().addComponents(nivel),
-      new ActionRowBuilder().addComponents(idade),
-      new ActionRowBuilder().addComponents(liderOrg),
-      new ActionRowBuilder().addComponents(indicacao),
-    );
-
-    await interaction.showModal(modal);
+    return interaction.reply({
+      embeds: [embed],
+      ephemeral: true
+    });
   }
 };
