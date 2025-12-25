@@ -5,7 +5,7 @@ const {
 
 const { lerMembros } = require('../utils/dataManager');
 
-const INSCRICAO_SITE_URL = 'https://mochavao-inscricao-git-main-spythancodings-projects.vercel.app/'; // 🔴 ajuste depois
+const INSCRICAO_SITE_URL = 'https://www.inscricaomochavao.app/'; // 🔴 ajuste depois
 
 module.exports = {
   data: new SlashCommandBuilder()
