@@ -79,12 +79,14 @@ module.exports = {
     const sub = interaction.options.getSubcommand();
     const canalAdm = interaction.guild.channels.cache.get(CANAL_ADM);
 
-    // ======================
+    // =====================================================
     // APROVAR
-    // ======================
+    // =====================================================
     if (sub === 'aprovar') {
       const usuario = interaction.options.getUser('usuario');
-      const membroGuild = await interaction.guild.members.fetch(usuario.id).catch(() => null);
+      if (!usuario) {
+        return interaction.reply('❌ Você precisa informar um usuário.');
+      }
 
       const inscricao = getInscricao(usuario.id);
       if (!inscricao) {
@@ -95,6 +97,10 @@ module.exports = {
       if (!sucesso) {
         return interaction.reply('❌ Erro ao aprovar inscrição.');
       }
+
+      const membroGuild = await interaction.guild.members
+        .fetch(usuario.id)
+        .catch(() => null);
 
       if (membroGuild) {
         await membroGuild.roles.add(CARGO_TESTE).catch(() => {});
@@ -115,12 +121,16 @@ module.exports = {
       return interaction.reply('✅ Inscrição aprovada com sucesso.');
     }
 
-    // ======================
+    // =====================================================
     // REPROVAR (INDIVIDUAL)
-    // ======================
+    // =====================================================
     if (sub === 'reprovar') {
       const usuario = interaction.options.getUser('usuario');
       const motivo = interaction.options.getString('motivo');
+
+      if (!usuario) {
+        return interaction.reply('❌ Você precisa informar um usuário.');
+      }
 
       const inscricao = getInscricao(usuario.id);
       if (!inscricao) {
@@ -130,6 +140,8 @@ module.exports = {
       atualizarInscricao(usuario.id, {
         status: 'reprovado_inscricao'
       });
+
+      removerInscricao(usuario.id);
 
       const embed = new EmbedBuilder()
         .setColor('Red')
@@ -145,9 +157,9 @@ module.exports = {
       return interaction.reply('❌ Inscrição reprovada.');
     }
 
-    // ======================
+    // =====================================================
     // REPROVAR TODOS
-    // ======================
+    // =====================================================
     if (sub === 'reprovartodos') {
       const inscritos = lerInscritos();
       const ids = Object.keys(inscritos);
