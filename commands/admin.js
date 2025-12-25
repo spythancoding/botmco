@@ -46,11 +46,12 @@ module.exports = {
         '`/blackperm <usuário> <motivo> <provas>` — Blacklist permanente\n' +
         '`/rblacklist <usuário>` — Remove blacklist (restrições aplicáveis)\n\n' +
 
-        '📝 **Sistema de Inscrições**\n' +
-        '`/inscrever` — Candidato se inscreve\n' +
-        '`/verinscricao` — Visualizar inscrições pendentes\n' +
+        '📝 **Sistema de Inscrições (Site Oficial)**\n' +
+        '• As inscrições são feitas **exclusivamente pelo site**\n' +
+        '`/verinscricao` — Ver inscrições pendentes\n' +
         '`/inscricao aprovar <usuário>` — Aprovar inscrição\n' +
-        '`/inscricao reprovar <usuário> <motivo>` — Reprovar inscrição\n\n' +
+        '`/inscricao reprovar <usuário> <motivo>` — Reprovar inscrição\n' +
+        '`/inscricao reprovartodos` — Reprovar TODAS as inscrições pendentes\n\n' +
 
         '🧪 **Sistema de Teste**\n' +
         '`/verteste` — Ver membros em período de teste\n' +
@@ -58,13 +59,13 @@ module.exports = {
         '`/teste reprovar <usuário> <motivo>` — Reprovar teste\n\n' +
 
         '🚧 **Sistemas em Desenvolvimento**\n' +
-        '• Automação de advertências (expiração em 30 dias)\n' +
-        '• Fim automático de blacklist\n' +
-        '• Sistema de histórico disciplinar avançado\n' +
+        '• Expiração automática de inscrições\n' +
+        '• Histórico de inscrições e reprovações\n' +
+        '• Sistema disciplinar avançado\n' +
         '• Economia interna (multas, recompensas, VIPs)\n'
       )
       .setFooter({
-        text: 'Sistema Oficial da Família MoChavãO • n2tzz'
+        text: 'Sistema Oficial da Família MoChavãO'
       })
       .setTimestamp();
 

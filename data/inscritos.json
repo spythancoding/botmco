@@ -1,17 +1,1 @@
-{
-  "111111111111111111": {
-    "userId": "111111111111111111",
-    "nick": "Teste_API",
-    "nome": "Usu�rio Teste",
-    "idade": "22",
-    "horasRG": "150",
-    "nivelConta": "18",
-    "liderOrg": "N�o",
-    "microfone": "Sim",
-    "call": "Sim",
-    "horario": "Noite",
-    "observacoes": "Teste direto pela API",
-    "status": "pendente_inscricao",
-    "dataInscricao": "2025-12-24T04:24:39.853Z"
-  }
-}
+{}

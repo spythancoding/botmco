@@ -94,6 +94,17 @@ function getInscricao(userId) {
   return inscritos[userId] || null;
 }
 
+function removerInscricao(userId) {
+  const inscritos = lerInscritos();
+
+  if (!inscritos[userId]) return false;
+
+  delete inscritos[userId];
+  salvarInscritos(inscritos);
+  return true;
+}
+
+
 // ==========================
 // 🧪 TESTE (5 DIAS)
 // ==========================
@@ -179,6 +190,7 @@ module.exports = {
   getInscricao,
   aprovarInscricao,
   atualizarInscricao,
+  removerInscricao,
   
   // Teste
   lerTeste,

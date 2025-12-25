@@ -6,7 +6,9 @@ const {
 const {
   getInscricao,
   aprovarInscricao,
-  atualizarInscricao
+  atualizarInscricao,
+  lerInscritos,
+  removerInscricao
 } = require('../utils/dataManager');
 
 const {
@@ -22,6 +24,10 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('inscricao')
     .setDescription('Gerenciar inscrições')
+
+    // ======================
+    // APROVAR
+    // ======================
     .addSubcommand(sub =>
       sub.setName('aprovar')
         .setDescription('Aprovar inscrição')
@@ -31,6 +37,10 @@ module.exports = {
             .setRequired(true)
         )
     )
+
+    // ======================
+    // REPROVAR (INDIVIDUAL)
+    // ======================
     .addSubcommand(sub =>
       sub.setName('reprovar')
         .setDescription('Reprovar inscrição')
@@ -44,6 +54,14 @@ module.exports = {
             .setDescription('Motivo da reprovação')
             .setRequired(true)
         )
+    )
+
+    // ======================
+    // REPROVAR TODOS
+    // ======================
+    .addSubcommand(sub =>
+      sub.setName('reprovartodos')
+        .setDescription('Reprovar todas as inscrições pendentes')
     ),
 
   async execute(interaction) {
@@ -55,35 +73,27 @@ module.exports = {
       !isOwner(member) &&
       !isSubOwner(member)
     ) {
-      return interaction.reply({
-        content: '❌ Você não tem permissão para usar este comando.',
-        ephemeral: true
-      });
+      return interaction.reply('❌ Você não tem permissão para usar este comando.');
     }
 
     const sub = interaction.options.getSubcommand();
-    const usuario = interaction.options.getUser('usuario');
     const canalAdm = interaction.guild.channels.cache.get(CANAL_ADM);
-    const membroGuild = await interaction.guild.members.fetch(usuario.id).catch(() => null);
-
-    const inscricao = getInscricao(usuario.id);
-    if (!inscricao) {
-      return interaction.reply({
-        content: '❌ Inscrição não encontrada.',
-        ephemeral: true
-      });
-    }
 
     // ======================
     // APROVAR
     // ======================
     if (sub === 'aprovar') {
+      const usuario = interaction.options.getUser('usuario');
+      const membroGuild = await interaction.guild.members.fetch(usuario.id).catch(() => null);
+
+      const inscricao = getInscricao(usuario.id);
+      if (!inscricao) {
+        return interaction.reply('❌ Inscrição não encontrada.');
+      }
+
       const sucesso = aprovarInscricao(usuario.id, interaction.user.id);
       if (!sucesso) {
-        return interaction.reply({
-          content: '❌ Erro ao aprovar inscrição.',
-          ephemeral: true
-        });
+        return interaction.reply('❌ Erro ao aprovar inscrição.');
       }
 
       if (membroGuild) {
@@ -106,10 +116,16 @@ module.exports = {
     }
 
     // ======================
-    // REPROVAR
+    // REPROVAR (INDIVIDUAL)
     // ======================
     if (sub === 'reprovar') {
+      const usuario = interaction.options.getUser('usuario');
       const motivo = interaction.options.getString('motivo');
+
+      const inscricao = getInscricao(usuario.id);
+      if (!inscricao) {
+        return interaction.reply('❌ Inscrição não encontrada.');
+      }
 
       atualizarInscricao(usuario.id, {
         status: 'reprovado_inscricao'
@@ -122,9 +138,51 @@ module.exports = {
         .setFooter({ text: 'Família MoChavãO' });
 
       await usuario.send({ embeds: [embed] }).catch(() => {});
-      canalAdm?.send(`🔴 **${usuario.tag}** reprovado por **${interaction.user.tag}**\n📝 ${motivo}`);
+      canalAdm?.send(
+        `🔴 **${usuario.tag}** reprovado por **${interaction.user.tag}**\n📝 ${motivo}`
+      );
 
       return interaction.reply('❌ Inscrição reprovada.');
+    }
+
+    // ======================
+    // REPROVAR TODOS
+    // ======================
+    if (sub === 'reprovartodos') {
+      const inscritos = lerInscritos();
+      const ids = Object.keys(inscritos);
+
+      if (!ids.length) {
+        return interaction.reply('📭 Não há inscrições pendentes.');
+      }
+
+      let total = 0;
+
+      for (const userId of ids) {
+        atualizarInscricao(userId, {
+          status: 'reprovado_inscricao'
+        });
+
+        removerInscricao(userId);
+        total++;
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor('Red')
+        .setTitle('❌ Inscrições Reprovadas em Massa')
+        .setDescription('Todas as inscrições pendentes foram reprovadas.')
+        .addFields(
+          { name: '📊 Total', value: `${total}`, inline: true },
+          { name: '👮 Ação por', value: interaction.user.tag, inline: true }
+        )
+        .setFooter({ text: 'Sistema de Inscrições • Família MoChavãO' })
+        .setTimestamp();
+
+      canalAdm?.send({ embeds: [embed] });
+
+      return interaction.reply(
+        `❌ **${total} inscrições** foram reprovadas com sucesso.`
+      );
     }
   }
 };
