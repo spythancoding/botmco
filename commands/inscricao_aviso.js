@@ -10,7 +10,7 @@ const CANAL_INSCRICOES = '1450516667397439670';
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('inscricao_aviso')
-    .setDescription('Envia a embed de aviso e requisitos para novos inscritos'),
+    .setDescription('Envia o aviso oficial e requisitos para inscrição'),
 
   async execute(interaction) {
     const member = interaction.member;
@@ -27,31 +27,56 @@ module.exports = {
       });
     }
 
-    // 📝 EMBED
+    // 🧾 EMBED OFICIAL DE INSCRIÇÃO
     const avisoInscricaoEmbed = new EmbedBuilder()
-      .setTitle('📝 Inscrição MoChavãO')
-      .setColor(0x9b59b6)
-      .setThumbnail('https://i.imgur.com/PDJRqCR.png')
+      .setColor(0x8b0000) // vermelho escuro (autoridade)
+      .setTitle('📝 Inscrição — Família MoChavãO')
       .setDescription(
-        '**LER COM ATENÇÃO**\n\n' +
-        'A MoChavãO é mais que uma equipe — é união, respeito e vontade de crescer juntos. Buscamos pessoas comprometidas, humildes e prontas para somar.\n\n' +
-        'Para entrar na família, o candidato passará por um teste de 5 dias, onde será avaliado em:\n' +
-        '• Atividade\n' +
-        '• Compromisso com a família\n' +
-        '• Participação em call no Discord da família\n' +
-        '• Interação com os membros\n' +
-        '• Ajuda na organização da família\n\n' +
-        '✅ **Pré-requisitos para participar:**\n' +
-        '• Ser ativo\n' +
-        '• Ter Discord\n' +
-        '• Ter no mínimo 14 anos\n\n' +
-        'OBS: Não acolhemos em nossa família outros líderes (principalmente rivais), membros em blacklist.\n\n' +
-        '# Realize o teste utilizando /inscrever. BOA SORTE!'
+        '**LEIA COM ATENÇÃO**\n\n' +
+        'A **Família MoChavãO** é uma organização séria, baseada em **disciplina, respeito e compromisso coletivo**.\n\n' +
+        'Buscamos pessoas que desejam **somar**, crescer junto à família e manter uma postura adequada dentro e fora do servidor.\n\n' +
+        'Ao se inscrever, o candidato passará por um **período de teste de 5 dias**, onde será avaliado.'
       )
-      .setFooter({ text: 'Família MoChavãO © 2025' })
+      .addFields(
+        {
+          name: '🩸 Durante o Período de Teste',
+          value:
+            '• Atividade constante\n' +
+            '• Compromisso com a família\n' +
+            '• Participação em call no Discord\n' +
+            '• Boa convivência com os membros\n' +
+            '• Respeito à hierarquia e organização'
+        },
+        {
+          name: '✅ Pré-requisitos',
+          value:
+            '• Ser ativo\n' +
+            '• Possuir Discord funcional\n' +
+            '• Ter no mínimo **14 anos**\n' +
+            '• Estar disposto a seguir regras e orientações'
+        },
+        {
+          name: '🚫 Não Aceitamos',
+          value:
+            '• Líderes de outras famílias\n' +
+            '• Membros em blacklist\n' +
+            '• Pessoas envolvidas em conflitos externos\n' +
+            '• Falta de respeito ou má conduta'
+        },
+        {
+          name: '📌 Como se Inscrever',
+          value:
+            'Utilize o comando **/inscrever** neste servidor.\n' +
+            'Preencha todas as informações com atenção.\n\n' +
+            '**Boa sorte.** A decisão será baseada exclusivamente em sua postura.'
+        }
+      )
+      .setFooter({
+        text: 'Família MoChavãO • Organização, respeito e compromisso'
+      })
       .setTimestamp();
 
-    // 📢 ENVIO NO CANAL
+    // 📢 ENVIO NO CANAL DE INSCRIÇÕES
     const canal = interaction.guild.channels.cache.get(CANAL_INSCRICOES);
 
     if (!canal) {
@@ -63,8 +88,9 @@ module.exports = {
 
     await canal.send({ embeds: [avisoInscricaoEmbed] });
 
+    // 🤫 Confirmação invisível
     return interaction.reply({
-      content: '✅ Embed de aviso enviada com sucesso no canal de inscrições.',
+      content: '✅ Aviso de inscrição enviado com sucesso.',
       ephemeral: true
     });
   }
