@@ -26,7 +26,7 @@ module.exports = {
 
     // ✨ Embed de boas-vindas
     const embed = new EmbedBuilder()
-      .setColor('#980505ff')
+      .setColor('#980505')
       .setTitle('👋 Bem-vindo à Família MoChavãO')
       .setDescription(
         `Seja bem-vindo(a), <@${member.id}>!\n\n` +
