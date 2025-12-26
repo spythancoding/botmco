@@ -17,7 +17,10 @@ const {
   isSubOwner
 } = require('../utils/permissions');
 
-const CANAL_ADM = '1440166535602770032';
+// 📢 Canal público de resultados
+const CANAL_RESULTADOS = '1453426415910523062';
+
+// 🎓 Cargo de teste
 const CARGO_TESTE = '1367402086119243797';
 
 module.exports = {
@@ -73,20 +76,20 @@ module.exports = {
       !isOwner(member) &&
       !isSubOwner(member)
     ) {
-      return interaction.reply('❌ Você não tem permissão para usar este comando.');
+      return interaction.reply({
+        content: '❌ Você não tem permissão para usar este comando.',
+        ephemeral: true
+      });
     }
 
     const sub = interaction.options.getSubcommand();
-    const canalAdm = interaction.guild.channels.cache.get(CANAL_ADM);
+    const canalResultados = interaction.guild.channels.cache.get(CANAL_RESULTADOS);
 
     // =====================================================
     // APROVAR
     // =====================================================
     if (sub === 'aprovar') {
       const usuario = interaction.options.getUser('usuario');
-      if (!usuario) {
-        return interaction.reply('❌ Você precisa informar um usuário.');
-      }
 
       const inscricao = getInscricao(usuario.id);
       if (!inscricao) {
@@ -106,17 +109,32 @@ module.exports = {
         await membroGuild.roles.add(CARGO_TESTE).catch(() => {});
       }
 
-      const embed = new EmbedBuilder()
-        .setColor('Green')
-        .setTitle('✅ Inscrição Aprovada')
+      // 📩 DM — APROVADO
+      const embedDM = new EmbedBuilder()
+        .setColor(0x2ecc71)
+        .setTitle('✅ Inscrição Aprovada — Família MoChavãO')
         .setDescription(
-          'Você foi aprovado para o **período de 5 dias de teste**.\n\n' +
-          'Boa sorte e mantenha um bom comportamento.'
+          `Parabéns, **${usuario.username}**.\n\n` +
+          'Sua inscrição foi **aprovada** e você iniciou o **período de teste de 5 dias**.\n\n' +
+          'Mantenha uma postura adequada, respeito e compromisso.'
         )
-        .setFooter({ text: 'Família MoChavãO' });
+        .setFooter({ text: 'Família MoChavãO • Sistema de Inscrições' })
+        .setTimestamp();
 
-      await usuario.send({ embeds: [embed] }).catch(() => {});
-      canalAdm?.send(`🟢 **${usuario.tag}** aprovado por **${interaction.user.tag}**`);
+      await usuario.send({ embeds: [embedDM] }).catch(() => {});
+
+      // 📢 RESULTADOS — APROVADO
+      const embedResultado = new EmbedBuilder()
+        .setColor(0x2ecc71)
+        .setTitle('🟢 Inscrição Aprovada')
+        .addFields(
+          { name: '👤 Usuário', value: `<@${usuario.id}>`, inline: true },
+          { name: '👮 Aprovado por', value: interaction.user.tag, inline: true }
+        )
+        .setFooter({ text: 'Sistema de Inscrições • Família MoChavãO' })
+        .setTimestamp();
+
+      canalResultados?.send({ embeds: [embedResultado] });
 
       return interaction.reply('✅ Inscrição aprovada com sucesso.');
     }
@@ -128,31 +146,43 @@ module.exports = {
       const usuario = interaction.options.getUser('usuario');
       const motivo = interaction.options.getString('motivo');
 
-      if (!usuario) {
-        return interaction.reply('❌ Você precisa informar um usuário.');
-      }
-
       const inscricao = getInscricao(usuario.id);
       if (!inscricao) {
         return interaction.reply('❌ Inscrição não encontrada.');
       }
 
-      atualizarInscricao(usuario.id, {
-        status: 'reprovado_inscricao'
-      });
-
+      atualizarInscricao(usuario.id, { status: 'reprovado_inscricao' });
       removerInscricao(usuario.id);
 
-      const embed = new EmbedBuilder()
-        .setColor('Red')
-        .setTitle('❌ Inscrição Reprovada')
-        .setDescription(`📝 **Motivo:** ${motivo}`)
-        .setFooter({ text: 'Família MoChavãO' });
+      // 📩 DM — REPROVADO
+      const embedDM = new EmbedBuilder()
+        .setColor(0xc0392b)
+        .setTitle('❌ Inscrição Reprovada — Família MoChavãO')
+        .addFields(
+          { name: '📝 Motivo', value: motivo },
+          {
+            name: 'ℹ️ Observação',
+            value: 'Você poderá tentar novamente no futuro.'
+          }
+        )
+        .setFooter({ text: 'Família MoChavãO • Sistema de Inscrições' })
+        .setTimestamp();
 
-      await usuario.send({ embeds: [embed] }).catch(() => {});
-      canalAdm?.send(
-        `🔴 **${usuario.tag}** reprovado por **${interaction.user.tag}**\n📝 ${motivo}`
-      );
+      await usuario.send({ embeds: [embedDM] }).catch(() => {});
+
+      // 📢 RESULTADOS — REPROVADO
+      const embedResultado = new EmbedBuilder()
+        .setColor(0xc0392b)
+        .setTitle('🔴 Inscrição Reprovada')
+        .addFields(
+          { name: '👤 Usuário', value: `<@${usuario.id}>`, inline: true },
+          { name: '👮 Ação por', value: interaction.user.tag, inline: true },
+          { name: '📝 Motivo', value: motivo }
+        )
+        .setFooter({ text: 'Sistema de Inscrições • Família MoChavãO' })
+        .setTimestamp();
+
+      canalResultados?.send({ embeds: [embedResultado] });
 
       return interaction.reply('❌ Inscrição reprovada.');
     }
@@ -171,18 +201,14 @@ module.exports = {
       let total = 0;
 
       for (const userId of ids) {
-        atualizarInscricao(userId, {
-          status: 'reprovado_inscricao'
-        });
-
+        atualizarInscricao(userId, { status: 'reprovado_inscricao' });
         removerInscricao(userId);
         total++;
       }
 
-      const embed = new EmbedBuilder()
-        .setColor('Red')
+      const embedResultado = new EmbedBuilder()
+        .setColor(0xc0392b)
         .setTitle('❌ Inscrições Reprovadas em Massa')
-        .setDescription('Todas as inscrições pendentes foram reprovadas.')
         .addFields(
           { name: '📊 Total', value: `${total}`, inline: true },
           { name: '👮 Ação por', value: interaction.user.tag, inline: true }
@@ -190,11 +216,9 @@ module.exports = {
         .setFooter({ text: 'Sistema de Inscrições • Família MoChavãO' })
         .setTimestamp();
 
-      canalAdm?.send({ embeds: [embed] });
+      canalResultados?.send({ embeds: [embedResultado] });
 
-      return interaction.reply(
-        `❌ **${total} inscrições** foram reprovadas com sucesso.`
-      );
+      return interaction.reply(`❌ **${total} inscrições** foram reprovadas.`);
     }
   }
 };

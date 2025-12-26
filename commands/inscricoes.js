@@ -9,18 +9,19 @@ const {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('inscricoes')
-    .setDescription('Ver inscrições pendentes'),
+    .setDescription('Ver lista de inscrições pendentes'),
 
   async execute(interaction) {
     const member = interaction.member;
 
+    // 🔐 Permissão
     if (
       !isFounder(member) &&
       !isOwner(member) &&
       !isSubOwner(member)
     ) {
       return interaction.reply({
-        content: '❌ Você não tem permissão.',
+        content: '❌ Você não tem permissão para usar este comando.',
         ephemeral: true
       });
     }
@@ -30,25 +31,29 @@ module.exports = {
 
     if (!inscritos.length) {
       return interaction.reply({
-        content: '📭 Nenhuma inscrição pendente.',
+        content: '📭 Nenhuma inscrição pendente no momento.',
         ephemeral: true
       });
     }
 
-    // Lista apenas menções
+    // 🧾 Lista numerada (limite seguro)
     const listaUsuarios = inscritos
-      .map(i => `👤 <@${i.userId}>`)
+      .slice(0, 25)
+      .map((i, index) => `**${index + 1}.** <@${i.userId}>`)
       .join('\n');
 
     const embed = new EmbedBuilder()
-      .setColor('#5865F2')
-      .setTitle(`📊 Inscrições Pendentes (${inscritos.length})`)
-      .setDescription(listaUsuarios)
+      .setColor(0x5865F2) // Azul Discord
+      .setTitle('📊 Inscrições Pendentes')
+      .setDescription(
+        `Total de inscrições aguardando análise: **${inscritos.length}**\n\n` +
+        listaUsuarios
+      )
       .setFooter({
         text: 'Use /verinscricao @usuário para ver os detalhes'
       })
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed] });
+    return interaction.reply({ embeds: [embed] });
   }
 };

@@ -1,66 +1,51 @@
 const { EmbedBuilder } = require('discord.js');
 
 const regrasEmbed = new EmbedBuilder()
-  .setTitle('📜 Código de Conduta — Família MoChavãO')
-  .setColor(0x8b0000) // vermelho escuro (elegante / autoridade)
-  .setThumbnail('https://cdn.discordapp.com/attachments/1450348057295061045/1453143385161465987/Gemini_Generated_Image_cajufwcajufwcaju.png?ex=694c60bd&is=694b0f3d&hm=da7ecb523d4046baf31d0dcd7d8e5265698b9f52e0b73f83c24073608a6439d0&') // link direto
+  .setTitle('📜 Diretrizes de Entrada — Família MoChavãO')
+  .setColor(0x8b0000) // vermelho escuro (autoridade)
+  .setThumbnail(
+    'https://cdn.discordapp.com/attachments/1450348057295061045/1453143385161465987/Gemini_Generated_Image_cajufwcajufwcaju.png'
+  )
   .setDescription(
-    '@everyone\n\n' +
     '**Bem-vindo à Família MoChavãO.**\n\n' +
-    'A MoChavãO é uma comunidade organizada, pautada em **respeito, disciplina e crescimento coletivo**. ' +
-    'Ao permanecer neste servidor, você concorda integralmente com as diretrizes abaixo.\n\n' +
+    'Este servidor é a base oficial da família MoChavãO no GTA RP. ' +
+    'Aqui prezamos por **organização, respeito e compromisso**.\n\n' +
+    'Se você está aqui, significa que tem interesse em **fazer parte da família**.\n\n' +
     '━━━━━━━━━━━━━━━━━━━━'
   )
   .addFields(
     {
-      name: '🤝 Conduta Geral',
+      name: '🎯 Sobre a Família',
       value:
-        '• O respeito é obrigatório entre todos os membros\n' +
-        '• Provocações, ofensas ou atitudes tóxicas não serão toleradas\n' +
-        '• Conflitos devem ser resolvidos de forma madura ou com auxílio da staff'
+        '• Comunidade séria e organizada\n' +
+        '• Foco em GTA RP (SAMP)\n' +
+        '• Hierarquia bem definida\n' +
+        '• Ambiente disciplinado e respeitoso'
     },
     {
-      name: '🗣️ Comunicação',
+      name: '📌 Regras Básicas',
       value:
-        '• Linguagem ofensiva, abusiva ou desrespeitosa é proibida\n' +
-        '• Evite discussões desnecessárias ou comportamento provocativo\n' +
-        '• Preserve sempre um ambiente organizado'
+        '• Respeito é obrigatório\n' +
+        '• Não serão toleradas provocações, ofensas ou desrespeito\n' +
+        '• Qualquer tentativa de burlar regras resultará em punição\n' +
+        '• Decisões da administração são soberanas'
     },
     {
-      name: '🚫 Spam & Divulgação',
+      name: '📝 Como Fazer Parte',
       value:
-        '• Proibido spam, flood ou mensagens repetitivas\n' +
-        '• Divulgação de servidores, links ou conteúdos externos somente com autorização'
+        '1️⃣ Utilize o comando **/inscrever**\n' +
+        '2️⃣ Preencha o formulário com atenção\n' +
+        '3️⃣ Aguarde a análise da administração\n' +
+        '4️⃣ Se aprovado, você será integrado à família'
     },
     {
-      name: '🔞 Conteúdo',
-      value:
-        '• Conteúdo NSFW, ilegal ou impróprio é estritamente proibido\n' +
-        '• Nomes, imagens, status ou mensagens ofensivas não são permitidos'
-    },
-    {
-      name: '🎧 Canais de Voz',
-      value:
-        '• Utilize os canais de voz com respeito\n' +
-        '• Evite ruídos, interrupções ou comportamentos invasivos\n' +
-        '• Siga sempre as orientações dos membros presentes'
-    },
-    {
-      name: '🛡️ Autoridade & Moderação',
-      value:
-        '• As decisões da administração devem ser respeitadas\n' +
-        '• A staff pode aplicar advertências, mute, kick ou ban quando necessário\n' +
-        '• Caso se sinta injustiçado, procure um administrador de forma privada e respeitosa'
-    },
-    {
-      name: '📌 Avisos Importantes',
+      name: '⚠️ Avisos Importantes',
       value:
         '• O desconhecimento das regras não isenta punições\n' +
-        '• As regras podem ser atualizadas a qualquer momento\n' +
-        '• É responsabilidade do membro manter-se informado'
+        '• Informações falsas na inscrição resultam em reprovação\n' +
+        '• As regras podem ser alteradas sem aviso prévio'
     }
   )
-  
   .setFooter({
     text: 'Família MoChavãO © 2025 • Organização, respeito e compromisso'
   })
