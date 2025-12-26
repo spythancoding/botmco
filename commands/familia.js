@@ -12,9 +12,7 @@ const {
   adicionarHistorico
 } = require('../utils/dataManager');
 
-const {
-  definirCargoFamilia
-} = require('../utils/familiaRoles');
+const { definirCargoFamilia } = require('../utils/familiaRoles');
 
 const {
   isFounder,
@@ -25,7 +23,7 @@ const {
 
 const PAGE_SIZE = 10;
 
-// 🎭 Cargos disponíveis para /familia adicionar
+// 🎭 Cargos disponíveis
 const CARGOS_FAMILIA = {
   'Legacy': '1313574259779571845',
   'Membro +': '1445295441481564256',
@@ -37,18 +35,15 @@ module.exports = {
     .setName('familia')
     .setDescription('Gerenciamento da Família MoChavãO')
 
-    // ================= ADICIONAR =================
     .addSubcommand(sub =>
       sub.setName('adicionar')
-        .setDescription('Adicionar um novo membro à família')
+        .setDescription('Adicionar um novo membro')
         .addUserOption(opt =>
-          opt.setName('usuario')
-            .setDescription('Usuário a ser adicionado')
-            .setRequired(true)
+          opt.setName('usuario').setDescription('Usuário').setRequired(true)
         )
         .addStringOption(opt =>
           opt.setName('cargo')
-            .setDescription('Cargo inicial do membro')
+            .setDescription('Cargo')
             .setRequired(true)
             .addChoices(
               { name: 'Legacy', value: 'Legacy' },
@@ -57,44 +52,34 @@ module.exports = {
             )
         )
         .addStringOption(opt =>
-          opt.setName('whatsapp')
-            .setDescription('Número de WhatsApp (opcional)')
-            .setRequired(false)
+          opt.setName('whatsapp').setDescription('WhatsApp')
         )
     )
 
-    // ================= LISTAR =================
     .addSubcommand(sub =>
       sub.setName('listar')
         .setDescription('Listar membros da família')
     )
 
-    // ================= REMOVER =================
     .addSubcommand(sub =>
       sub.setName('remover')
-        .setDescription('Remover um membro')
+        .setDescription('Remover membro')
         .addUserOption(opt =>
-          opt.setName('membro')
-            .setDescription('Membro')
-            .setRequired(true)
+          opt.setName('membro').setDescription('Membro').setRequired(true)
         )
     ),
 
   async execute(interaction) {
     const member = interaction.member;
 
-    // 🔐 PERMISSÃO GLOBAL
     if (!isFounder(member) && !isOwner(member) && !isSubOwner(member)) {
-      return interaction.reply({
-        content: '❌ Você não tem permissão para usar este comando.',
-        ephemeral: true
-      });
+      return interaction.reply({ content: '❌ Sem permissão.', ephemeral: true });
     }
 
     const sub = interaction.options.getSubcommand();
 
     // =====================================================
-    // ================= /familia adicionar =================
+    // /familia adicionar
     // =====================================================
     if (sub === 'adicionar') {
       if (!canAddMember(member)) {
@@ -106,26 +91,14 @@ module.exports = {
       const whatsapp = interaction.options.getString('whatsapp') ?? 'Não informado';
 
       const membros = lerMembros();
-
       if (membros[usuario.id]) {
-        return interaction.reply({
-          content: '⚠️ Usuário já é membro da família.',
-          ephemeral: true
-        });
+        return interaction.reply({ content: '⚠️ Usuário já é membro.', ephemeral: true });
       }
 
       const cargoId = CARGOS_FAMILIA[cargoEscolhido];
-      if (!cargoId) {
-        return interaction.reply({ content: '❌ Cargo inválido.', ephemeral: true });
-      }
+      const guildMember = await interaction.guild.members.fetch(usuario.id).catch(() => null);
 
-      const guildMember = await interaction.guild.members
-        .fetch(usuario.id)
-        .catch(() => null);
-
-      // 🎭 FORÇA ESTADO ÚNICO DE CARGO DA FAMÍLIA
       if (guildMember) {
-        // Remove OBS, visitante e qualquer outro cargo da família
         await definirCargoFamilia(guildMember, cargoId);
       }
 
@@ -138,43 +111,16 @@ module.exports = {
       };
 
       salvarMembros(membros);
-
-      adicionarHistorico({
-        acao: 'ADICIONAR_MEMBRO',
-        executor: interaction.user.id,
-        alvo: usuario.id
-      });
-
-      // 📩 DM
-      try {
-        await usuario.send({
-          embeds: [
-            new EmbedBuilder()
-              .setColor(0x2ecc71)
-              .setTitle('🏴 Bem-vindo à Família MoChavãO')
-              .setDescription(
-                'Você foi **adicionado oficialmente** à família.\n\n' +
-                'A partir de agora, você representa o nome **MoChavãO**.'
-              )
-              .addFields({
-                name: '🏷️ Cargo',
-                value: cargoEscolhido
-              })
-              .setFooter({ text: 'Administração da Família MoChavãO' })
-              .setTimestamp()
-          ]
-        });
-      } catch {}
+      adicionarHistorico({ acao: 'ADICIONAR_MEMBRO', executor: interaction.user.id, alvo: usuario.id });
 
       return interaction.reply({
         embeds: [
           new EmbedBuilder()
-            .setColor(0x27ae60)
+            .setColor(0x2ecc71)
             .setTitle('✅ Membro adicionado')
             .addFields(
               { name: 'Usuário', value: `<@${usuario.id}>` },
-              { name: 'Cargo', value: cargoEscolhido },
-              { name: 'Adicionado por', value: `<@${interaction.user.id}>` }
+              { name: 'Cargo', value: cargoEscolhido }
             )
             .setTimestamp()
         ]
@@ -182,7 +128,7 @@ module.exports = {
     }
 
     // =====================================================
-    // ================= /familia remover ==================
+    // /familia remover
     // =====================================================
     if (sub === 'remover') {
       if (!canAddMember(member)) {
@@ -193,17 +139,10 @@ module.exports = {
       const membros = lerMembros();
 
       if (!membros[usuario.id]) {
-        return interaction.reply({
-          content: '⚠️ Usuário não é membro da família.',
-          ephemeral: true
-        });
+        return interaction.reply({ content: '⚠️ Não é membro.', ephemeral: true });
       }
 
-      const guildMember = await interaction.guild.members
-        .fetch(usuario.id)
-        .catch(() => null);
-
-      // 🎭 REMOVE CARGOS DA FAMÍLIA E APLICA VISITANTE
+      const guildMember = await interaction.guild.members.fetch(usuario.id).catch(() => null);
       if (guildMember) {
         await definirCargoFamilia(guildMember, null, true);
       }
@@ -211,44 +150,18 @@ module.exports = {
       delete membros[usuario.id];
       salvarMembros(membros);
 
-      adicionarHistorico({
-        acao: 'REMOVER_MEMBRO',
-        executor: interaction.user.id,
-        alvo: usuario.id
-      });
-
-      try {
-        await usuario.send({
-          embeds: [
-            new EmbedBuilder()
-              .setColor(0xe74c3c)
-              .setTitle('❌ Retirada da Família MoChavãO')
-              .setDescription(
-                'Você foi removido da família por decisão administrativa.'
-              )
-              .setTimestamp()
-          ]
-        });
-      } catch {}
-
       return interaction.reply({
         embeds: [
           new EmbedBuilder()
-            .setColor(0xc0392b)
+            .setColor(0xe74c3c)
             .setTitle('🗑️ Membro removido')
-            .addFields(
-              { name: 'Usuário', value: `<@${usuario.id}>` },
-              { name: 'Ação por', value: `<@${interaction.user.id}>` }
-            )
+            .addFields({ name: 'Usuário', value: `<@${usuario.id}>` })
             .setTimestamp()
         ]
       });
     }
 
     // ================= /familia listar =================
-    // =====================================================
-// ================= /familia listar ===================
-// =====================================================
 if (sub === 'listar') {
   const membros = lerMembros();
   const lista = Object.entries(membros);
@@ -260,112 +173,110 @@ if (sub === 'listar') {
     });
   }
 
-  // 📂 Separação por cargos (nova hierarquia)
-  const porCargo = {
-    Donos: [],
-    Diretoria: [],
-    Administradores: [],
-    'Membro +': [],
-    Legacy: [],
-    Membro: []
-  };
+  const PAGE_SIZE = 10;
+
+  // ======================
+  // 📂 ORGANIZAÇÃO POR CARGO (PRESTÍGIO)
+  // ======================
+  const donos = [];
+  const diretores = [];
+  const administradores = [];
+  const membroPlus = [];
+  const legacy = [];
+  const membrosNormais = [];
 
   for (const [id, dados] of lista) {
-    if (porCargo[dados.cargo]) {
-      porCargo[dados.cargo].push(id);
+    switch (dados.cargo) {
+      case 'Dono':
+        donos.push(id);
+        break;
+      case 'Diretor':
+        diretores.push(id);
+        break;
+      case 'Administrador':
+        administradores.push(id);
+        break;
+      case 'Membro +':
+        membroPlus.push(id);
+        break;
+      case 'Legacy':
+        legacy.push(id);
+        break;
+      case 'Membro':
+        membrosNormais.push(id);
+        break;
+      default:
+        break;
     }
   }
 
+  let pagina = 0;
+  let visualizacao = 'dashboard';
+
   // ======================
-  // 📊 DASHBOARD PRINCIPAL
+  // 📊 DASHBOARD
   // ======================
-  const gerarDashboard = () =>
+  const dashboardEmbed = () =>
     new EmbedBuilder()
-      .setColor('#9b59b6')
-      .setTitle('🏴 Família MoChavãO — Painel Geral')
+      .setColor(0x8b0000)
+      .setTitle('🏴 Família MoChavãO — Estrutura')
       .setDescription(
-        `👑 **Donos:** ${porCargo.Donos.length}\n` +
-        `🎯 **Diretoria:** ${porCargo.Diretoria.length}\n` +
-        `🛡️ **Administradores:** ${porCargo.Administradores.length}\n\n` +
-        `⭐ **Membro +:** ${porCargo['Membro +'].length}\n` +
-        `🕯️ **Legacy:** ${porCargo.Legacy.length}\n` +
-        `👤 **Membro:** ${porCargo.Membro.length}`
+        `👑 **Donos:** ${donos.length}\n` +
+        `🎯 **Diretoria:** ${diretores.length}\n` +
+        `🛡️ **Administradores:** ${administradores.length}\n\n` +
+        `⭐ **Membro +:** ${membroPlus.length}\n` +
+        `🕯️ **Legacy:** ${legacy.length}\n` +
+        `👤 **Membro:** ${membrosNormais.length}`
       )
-      .setFooter({
-        text: `Total de membros: ${lista.length}`
-      })
+      .setFooter({ text: `Total de membros: ${lista.length}` })
       .setTimestamp();
 
   // ======================
-  // 📄 LISTA PAGINADA
+  // 📄 LISTA COM PAGINAÇÃO
   // ======================
-  const gerarLista = (titulo, cor, ids, paginaAtual = 0) => {
-    const total = Math.ceil(ids.length / PAGE_SIZE) || 1;
-    const inicio = paginaAtual * PAGE_SIZE;
+  const gerarLista = (titulo, cor, ids) => {
+    const totalPaginas = Math.max(1, Math.ceil(ids.length / PAGE_SIZE));
+    const inicio = pagina * PAGE_SIZE;
     const fim = inicio + PAGE_SIZE;
 
     return new EmbedBuilder()
       .setColor(cor)
-      .setTitle(`${titulo} — Página ${paginaAtual + 1}/${total}`)
+      .setTitle(`${titulo} — Página ${pagina + 1}/${totalPaginas}`)
       .setDescription(
-        ids.slice(inicio, fim).map(id => `👤 <@${id}>`).join('\n') ||
+        ids.slice(inicio, fim).map(id => `• <@${id}>`).join('\n') ||
         '_Nenhum membro._'
       )
       .setTimestamp();
   };
 
   // ======================
-  // 🔘 BOTÕES
+  // 🔘 BOTÕES (CATEGORIAS)
   // ======================
-  const botoesDashboard = (ativo = false) => [
-  new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('dash')
-      .setLabel('📊 Painel')
-      .setStyle(ButtonStyle.Primary)
-      .setDisabled(ativo),
+  const rowCategorias = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('dashboard').setLabel('📊 Geral').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('admin').setLabel('👑 Administração').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('membro_plus').setLabel('⭐ Membro +').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('legacy').setLabel('🕯️ Legacy').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('membro').setLabel('👤 Membro').setStyle(ButtonStyle.Secondary)
+  );
 
+  // ======================
+  // 🔁 BOTÕES (PAGINAÇÃO)
+  // ======================
+  const rowPaginacao = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId('donos')
-      .setLabel('👑 Donos')
+      .setCustomId('prev')
+      .setLabel('⬅️ Anterior')
       .setStyle(ButtonStyle.Secondary),
-
     new ButtonBuilder()
-      .setCustomId('diretoria')
-      .setLabel('🎯 Diretoria')
-      .setStyle(ButtonStyle.Secondary),
-
-    new ButtonBuilder()
-      .setCustomId('admins')
-      .setLabel('🛡️ Admins')
+      .setCustomId('next')
+      .setLabel('➡️ Próxima')
       .setStyle(ButtonStyle.Secondary)
-  ),
-
-  new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('membro_plus')
-      .setLabel('⭐ Membro +')
-      .setStyle(ButtonStyle.Secondary),
-
-    new ButtonBuilder()
-      .setCustomId('legacy')
-      .setLabel('🕯️ Legacy')
-      .setStyle(ButtonStyle.Secondary),
-
-    new ButtonBuilder()
-      .setCustomId('membro')
-      .setLabel('👤 Membro')
-      .setStyle(ButtonStyle.Secondary)
-  )
-];
-
-
-  let visualizacao = 'dash';
-  let pagina = 0;
+  );
 
   const msg = await interaction.reply({
-    embeds: [gerarDashboard()],
-    components: [botoesDashboard(true)],
+    embeds: [dashboardEmbed()],
+    components: [rowCategorias],
     fetchReply: true
   });
 
@@ -373,64 +284,76 @@ if (sub === 'listar') {
 
   collector.on('collect', async i => {
     if (i.user.id !== interaction.user.id) {
-      return i.reply({
-        content: '❌ Apenas quem executou o comando pode usar.',
-        ephemeral: true
-      });
+      return i.reply({ content: '❌ Apenas quem executou pode usar.', ephemeral: true });
     }
 
     let embed;
-    let components = [];
+    let listaAtual = [];
 
-    // ======================
-    // DASHBOARD
-    // ======================
-    if (i.customId === 'dash' || i.customId === 'voltar') {
-      visualizacao = 'dash';
+    if (i.customId === 'dashboard') {
       pagina = 0;
-      embed = gerarDashboard();
-      components = [botoesDashboard(true)];
+      visualizacao = 'dashboard';
+      embed = dashboardEmbed();
+      return i.update({ embeds: [embed], components: [rowCategorias] });
     }
 
-    // ======================
-    // LISTAS
-    // ======================
-    const mapas = {
-      donos: ['👑 Donos', '#f1c40f', porCargo.Donos],
-      diretoria: ['🎯 Diretoria', '#e67e22', porCargo.Diretoria],
-      admins: ['🛡️ Administradores', '#3498db', porCargo.Administradores],
-      membro_plus: ['⭐ Membro +', '#2ecc71', porCargo['Membro +']],
-      legacy: ['🕯️ Legacy', '#95a5a6', porCargo.Legacy],
-      membro: ['👤 Membro', '#bdc3c7', porCargo.Membro]
-    };
-
-    if (mapas[i.customId]) {
-      visualizacao = i.customId;
+    if (i.customId === 'admin') {
+      visualizacao = 'admin';
+      listaAtual = [...donos, ...diretores, ...administradores];
       pagina = 0;
-      const [titulo, cor, ids] = mapas[i.customId];
-      embed = gerarLista(titulo, cor, ids, pagina);
-      components = [
-        botoesDashboard(false),
-        botoesPag(pagina, Math.ceil(ids.length / PAGE_SIZE) || 1)
-      ];
+      embed = gerarLista('👑 Administração', 0xf1c40f, listaAtual);
+    }
+
+    if (i.customId === 'membro_plus') {
+      visualizacao = 'membro_plus';
+      listaAtual = membroPlus;
+      pagina = 0;
+      embed = gerarLista('⭐ Membro +', 0x2ecc71, listaAtual);
+    }
+
+    if (i.customId === 'legacy') {
+      visualizacao = 'legacy';
+      listaAtual = legacy;
+      pagina = 0;
+      embed = gerarLista('🕯️ Legacy', 0x95a5a6, listaAtual);
+    }
+
+    if (i.customId === 'membro') {
+      visualizacao = 'membro';
+      listaAtual = membrosNormais;
+      pagina = 0;
+      embed = gerarLista('👤 Membro', 0xbdc3c7, listaAtual);
     }
 
     if (i.customId === 'prev' || i.customId === 'next') {
-      const dir = i.customId === 'next' ? 1 : -1;
-      pagina += dir;
+      const listas = {
+        admin: [...donos, ...diretores, ...administradores],
+        membro_plus: membroPlus,
+        legacy: legacy,
+        membro: membrosNormais
+      };
 
-      const [titulo, cor, ids] = mapas[visualizacao];
-      embed = gerarLista(titulo, cor, ids, pagina);
+      listaAtual = listas[visualizacao] || [];
+      const totalPaginas = Math.max(1, Math.ceil(listaAtual.length / PAGE_SIZE));
 
-      components = [
-        botoesDashboard(false),
-        botoesPag(pagina, Math.ceil(ids.length / PAGE_SIZE) || 1)
-      ];
+      if (i.customId === 'prev' && pagina > 0) pagina--;
+      if (i.customId === 'next' && pagina < totalPaginas - 1) pagina++;
+
+      embed = gerarLista(
+        visualizacao === 'admin' ? '👑 Administração' :
+        visualizacao === 'membro_plus' ? '⭐ Membro +' :
+        visualizacao === 'legacy' ? '🕯️ Legacy' : '👤 Membro',
+        0x8b0000,
+        listaAtual
+      );
     }
 
-    await i.update({ embeds: [embed], components });
+    await i.update({
+      embeds: [embed],
+      components: [rowCategorias, rowPaginacao]
+    });
   });
 }
 
   }
-};
+};  

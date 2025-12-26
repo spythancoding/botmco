@@ -26,11 +26,11 @@ module.exports = {
     }
 
     const embed = new EmbedBuilder()
-      .setColor(0x8b0000) // vermelho escuro (autoridade)
+      .setColor(0x8b0000) // vermelho escuro — autoridade
       .setTitle('🛠️ Painel Administrativo — Família MoChavãO')
       .setDescription(
-        'Este painel reúne os **principais comandos administrativos** disponíveis.\n' +
-        'Utilize com responsabilidade e sempre respeitando a hierarquia da família.'
+        'Este painel reúne os **comandos administrativos oficiais** da Família **MoChavãO**.\n' +
+        'Utilize com responsabilidade, sempre respeitando a **hierarquia, disciplina e postura**.'
       )
 
       // ======================
@@ -40,34 +40,34 @@ module.exports = {
         {
           name: '👥 Gerenciamento da Família',
           value:
-            '`/familia adicionar <usuário> <cargo>` — Adiciona membro à família\n' +
-            '`/familia remover <usuário>` — Remove membro da família\n' +
-            '`/familia listar` — Lista completa de membros'
+            '`/familia adicionar <usuário> <cargo>` — Adicionar membro\n' +
+            '`/familia remover <usuário>` — Remover membro\n' +
+            '`/familia listar` — Listagem geral da família'
         },
 
         // ======================
         // INSCRIÇÕES
         // ======================
         {
-          name: '📝 Sistema de Inscrições (Site Oficial)',
+          name: '📝 Sistema de Inscrições',
           value:
-            '• Inscrições realizadas **exclusivamente pelo site**\n\n' +
-            '`/inscricoes` — Lista inscrições pendentes\n' +
+            '• Inscrições realizadas **exclusivamente pelo site oficial**\n\n' +
+            '`/inscricoes` — Listar inscrições pendentes\n' +
             '`/verinscricao <usuário>` — Ver detalhes da inscrição\n' +
             '`/inscricao aprovar <usuário>` — Aprovar inscrição\n' +
             '`/inscricao reprovar <usuário> <motivo>` — Reprovar inscrição\n' +
-            '`/inscricao reprovartodos` — Reprovar todas as inscrições pendentes'
+            '`/inscricao reprovartodos` — Reprovar todas as inscrições'
         },
 
         // ======================
         // TESTE
         // ======================
         {
-          name: '🧪 Sistema de Teste',
+          name: '🧪 Período de Teste',
           value:
-            '`/verteste` — Ver membros em período de teste\n' +
-            '`/teste aprovar <usuário>` — Aprovar período de teste\n' +
-            '`/teste reprovar <usuário> <motivo>` — Reprovar período de teste'
+            '`/verteste` — Ver membros em teste\n' +
+            '`/teste aprovar <usuário>` — Aprovar teste\n' +
+            '`/teste reprovar <usuário> <motivo>` — Reprovar teste'
         },
 
         // ======================
@@ -77,7 +77,7 @@ module.exports = {
           name: '⚠️ Sistema Disciplinar',
           value:
             '`/adv aplicar <usuário> <motivo> [provas]` — Aplicar advertência\n' +
-            '`/adv retirar <usuário>` — Retirar última advertência\n' +
+            '`/adv retirar <usuário>` — Remover advertência\n' +
             '• **3 advertências ⇒ blacklist automática (5 dias)**'
         },
 
@@ -98,41 +98,40 @@ module.exports = {
         {
           name: '🧹 Moderação & Controle',
           value:
-            '`/limparchat <quantidade>` — Apaga mensagens do canal\n' +
-            '`/lockchat <usuário> <motivo>` — Bloqueia o chat para um usuário\n' +
-            '`/unlockchat <usuário>` — Libera o chat do usuário'
+            '`/limparchat <quantidade>` — Limpeza de mensagens\n' +
+            '`/lockchat <usuário> <motivo>` — Bloqueio disciplinar de chat\n' +
+            '`/unlockchat <usuário>` — Liberação de chat'
         },
 
         // ======================
-        // INFORMAÇÃO
+        // COMUNICAÇÃO
         // ======================
         {
           name: '📢 Comunicação & Informação',
           value:
-            '`/infofamilia` — Envia informações oficiais da família\n' +
-            '`/inscricao_aviso` — Envia aviso e requisitos de inscrição'
+            '`/infofamilia` — Informações oficiais da família\n' +
+            '`/inscricao_aviso` — Aviso e requisitos de inscrição'
         },
 
         // ======================
-        // DESENVOLVIMENTO
+        // EVOLUÇÃO
         // ======================
         {
           name: '🚧 Sistemas em Evolução',
           value:
             '• Normalização avançada de cargos\n' +
-            '• Histórico completo de ações administrativas\n' +
+            '• Histórico administrativo completo\n' +
             '• Sistema disciplinar aprimorado\n' +
             '• Onboarding interativo pós-aprovação'
         }
       )
       .setFooter({
-        text: 'Sistema Administrativo • Família MoChavãO'
+        text: 'Sistema Administrativo Oficial • Família MoChavãO'
       })
       .setTimestamp();
 
     await interaction.reply({
       embeds: [embed],
-      ephemeral: true
     });
   }
 };

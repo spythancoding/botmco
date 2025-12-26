@@ -12,6 +12,7 @@ const {
 
 const {
   lerTeste,
+  salvarTeste,
   removerTeste,
   lerMembros,
   salvarMembros
@@ -19,18 +20,30 @@ const {
 
 const {
   definirCargoFamilia,
-  CARGO_VISITANTE,
-  CARGOS_FAMILIA
+  CARGO_VISITANTE
 } = require('../utils/familiaRoles');
 
-// 🎭 Cargos finais
+// 🎭 Cargos
+const CARGO_TESTE = '1367402086119243797'; // OBS / Teste
 const CARGO_MEMBRO = '1313574261041926225';
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('teste')
-    .setDescription('Gerenciar resultado do período de teste')
+    .setDescription('Gerenciar período de teste')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+
+    // ========= ADICIONAR =========
+    .addSubcommand(sub =>
+      sub
+        .setName('adicionar')
+        .setDescription('Adicionar usuário manualmente ao período de teste (5 dias)')
+        .addUserOption(opt =>
+          opt.setName('usuario')
+            .setDescription('Usuário a ser colocado em teste')
+            .setRequired(true)
+        )
+    )
 
     // ========= APROVAR =========
     .addSubcommand(sub =>
@@ -56,7 +69,7 @@ module.exports = {
         )
         .addStringOption(opt =>
           opt.setName('motivo')
-            .setDescription('❗ Motivo da reprovação')
+            .setDescription('Motivo da reprovação')
             .setRequired(true)
         )
     ),
@@ -80,30 +93,88 @@ module.exports = {
     const usuario = interaction.options.getUser('usuario');
 
     const testes = lerTeste();
-    const teste = testes[usuario.id];
+    const membros = lerMembros();
 
-    if (!teste) {
+    // =====================
+    // ➕ ADICIONAR TESTE
+    // =====================
+    if (sub === 'adicionar') {
+
+      if (testes[usuario.id]) {
+        return interaction.reply({
+          content: '⚠️ Este usuário já está em período de teste.',
+          ephemeral: true
+        });
+      }
+
+      if (membros[usuario.id]) {
+        return interaction.reply({
+          content: '⚠️ Este usuário já é membro da família.',
+          ephemeral: true
+        });
+      }
+
+      const guildMember = await interaction.guild.members
+        .fetch(usuario.id)
+        .catch(() => null);
+
+      if (guildMember) {
+        // 🔒 Estado único → TESTE
+        await definirCargoFamilia(guildMember, CARGO_TESTE);
+      }
+
+      const inicio = new Date();
+      const fim = new Date(inicio);
+      fim.setDate(fim.getDate() + 5);
+
+      testes[usuario.id] = {
+        userId: usuario.id,
+        nomeDiscord: usuario.username,
+        status: 'em_teste',
+        inicioTeste: inicio.toISOString(),
+        fimTeste: fim.toISOString(),
+        adicionadoPor: interaction.user.id
+      };
+
+      salvarTeste(testes);
+
+      // 📩 DM
+      const embedDM = new EmbedBuilder()
+        .setColor(0xf1c40f)
+        .setTitle('🧪 Início do Período de Teste — Família MoChavãO')
+        .setDescription(
+          'Você foi **adicionado manualmente** ao período de **teste de 5 dias**.\n\n' +
+          'Durante este período, sua postura, respeito e compromisso serão avaliados.'
+        )
+        .addFields({
+          name: '📅 Duração',
+          value: '5 dias a partir de hoje'
+        })
+        .setFooter({ text: 'Família MoChavãO • Sistema de Teste' })
+        .setTimestamp();
+
+      await usuario.send({ embeds: [embedDM] }).catch(() => {});
+
       return interaction.reply({
-        content: '⚠️ Este usuário não está em teste.'
+        content: `🧪 **${usuario.tag}** foi adicionado ao período de teste (5 dias).`
       });
     }
-
-    const membroGuild = await interaction.guild.members
-      .fetch(usuario.id)
-      .catch(() => null);
 
     // =====================
     // ✅ APROVAR TESTE
     // =====================
     if (sub === 'aprovar') {
-
-      if (membroGuild) {
-        // 🔒 ESTADO FINAL → MEMBRO
-        await definirCargoFamilia(membroGuild, CARGO_MEMBRO);
+      if (!testes[usuario.id]) {
+        return interaction.reply({ content: '⚠️ Usuário não está em teste.' });
       }
 
-      // 💾 Salva no sistema interno
-      const membros = lerMembros();
+      const guildMember = await interaction.guild.members
+        .fetch(usuario.id)
+        .catch(() => null);
+
+      if (guildMember) {
+        await definirCargoFamilia(guildMember, CARGO_MEMBRO);
+      }
 
       membros[usuario.id] = {
         nomeDiscord: usuario.username,
@@ -113,53 +184,52 @@ module.exports = {
       };
 
       salvarMembros(membros);
-
-      // ❌ Remove do teste.json
       removerTeste(usuario.id);
 
-      // 📩 DM
       const embedDM = new EmbedBuilder()
         .setColor(0x2ecc71)
         .setTitle('🏆 Teste Aprovado — Família MoChavãO')
         .setDescription(
-          'Parabéns!\n\n' +
-          'Você foi **aprovado definitivamente** e agora é um **Membro oficial da Família MoChavãO**.'
+          'Parabéns!\n\nVocê foi **aprovado definitivamente** e agora é **Membro oficial** da família.'
         )
         .setFooter({ text: 'Família MoChavãO • Sistema de Teste' })
         .setTimestamp();
 
       await usuario.send({ embeds: [embedDM] }).catch(() => {});
 
-      return interaction.reply(`🏆 **${usuario.tag}** aprovado e integrado à família.`);
+      return interaction.reply(`🏆 **${usuario.tag}** aprovado com sucesso.`);
     }
 
     // =====================
     // ❌ REPROVAR TESTE
     // =====================
     if (sub === 'reprovar') {
-      const motivo = interaction.options.getString('motivo');
-
-      if (membroGuild) {
-        // 🔒 VOLTA AO ESTADO BASE
-        await definirCargoFamilia(membroGuild, CARGO_VISITANTE);
+      if (!testes[usuario.id]) {
+        return interaction.reply({ content: '⚠️ Usuário não está em teste.' });
       }
 
-      // ❌ Remove do teste.json
+      const motivo = interaction.options.getString('motivo');
+
+      const guildMember = await interaction.guild.members
+        .fetch(usuario.id)
+        .catch(() => null);
+
+      if (guildMember) {
+        await definirCargoFamilia(guildMember, CARGO_VISITANTE);
+      }
+
       removerTeste(usuario.id);
 
       const embedDM = new EmbedBuilder()
         .setColor(0xc0392b)
         .setTitle('❌ Teste Reprovado — Família MoChavãO')
-        .addFields({
-          name: '📝 Motivo',
-          value: motivo
-        })
+        .addFields({ name: '📝 Motivo', value: motivo })
         .setFooter({ text: 'Família MoChavãO • Sistema de Teste' })
         .setTimestamp();
 
       await usuario.send({ embeds: [embedDM] }).catch(() => {});
 
-      return interaction.reply(`❌ **${usuario.tag}** foi reprovado no período de teste.`);
+      return interaction.reply(`❌ **${usuario.tag}** foi reprovado no teste.`);
     }
   }
 };
