@@ -26,7 +26,7 @@ module.exports = {
 
     // ✨ Embed de boas-vindas
     const embed = new EmbedBuilder()
-      .setColor('#9b59b6')
+      .setColor('#980505ff')
       .setTitle('👋 Bem-vindo à Família MoChavãO')
       .setDescription(
         `Seja bem-vindo(a), <@${member.id}>!\n\n` +
@@ -53,7 +53,7 @@ module.exports = {
       )
       .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
       // 👉 quando quiser, troque pelo banner oficial da família
-      .setImage('https://cdn.discordapp.com/attachments/1450348057295061045/1453925716835176458/ChatGPT_Image_23_de_dez._de_2025_22_08_26.png?ex=694f3957&is=694de7d7&hm=9d1ea827fb668f53013035121d2f2dfd73824dcecd6c943974268002ba25ca1b&')
+      .setImage('https://cdn.discordapp.com/attachments/1450348057295061045/1453948154087997452/Gemini_Generated_Image_s8n165s8n165s8n1.png?ex=694f4e3c&is=694dfcbc&hm=564352db30135527b9ff8b980670e4f905c85905403024cba4e03f857cf19de6&')
       .setFooter({
         text: 'Família MoChavãO • União, respeito e hierarquia'
       })
