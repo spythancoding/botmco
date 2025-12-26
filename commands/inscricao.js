@@ -12,6 +12,11 @@ const {
 } = require('../utils/dataManager');
 
 const {
+  definirCargoFamilia,
+  ROLE_OBS_MCO
+} = require('../utils/familiaRoles');
+
+const {
   isFounder,
   isOwner,
   isSubOwner
@@ -20,20 +25,17 @@ const {
 // 📢 Canal público de resultados
 const CANAL_RESULTADOS = '1453426415910523062';
 
-// 🎓 Cargo de teste
-const CARGO_TESTE = '1367402086119243797';
-
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('inscricao')
     .setDescription('Gerenciar inscrições')
 
     // ======================
-    // APROVAR
+    // APROVAR (ENTRA EM OBS)
     // ======================
     .addSubcommand(sub =>
       sub.setName('aprovar')
-        .setDescription('Aprovar inscrição')
+        .setDescription('Aprovar inscrição (período de observação)')
         .addUserOption(opt =>
           opt.setName('usuario')
             .setDescription('Usuário inscrito')
@@ -86,7 +88,7 @@ module.exports = {
     const canalResultados = interaction.guild.channels.cache.get(CANAL_RESULTADOS);
 
     // =====================================================
-    // APROVAR
+    // APROVAR → OBS McO
     // =====================================================
     if (sub === 'aprovar') {
       const usuario = interaction.options.getUser('usuario');
@@ -105,18 +107,19 @@ module.exports = {
         .fetch(usuario.id)
         .catch(() => null);
 
+      // 🎭 ESTADO ÚNICO → OBS
       if (membroGuild) {
-        await membroGuild.roles.add(CARGO_TESTE).catch(() => {});
+        await definirCargoFamilia(membroGuild, ROLE_OBS_MCO);
       }
 
-      // 📩 DM — APROVADO
+      // 📩 DM — APROVADO (OBS)
       const embedDM = new EmbedBuilder()
         .setColor(0x2ecc71)
         .setTitle('✅ Inscrição Aprovada — Família MoChavãO')
         .setDescription(
           `Parabéns, **${usuario.username}**.\n\n` +
-          'Sua inscrição foi **aprovada** e você iniciou o **período de teste de 5 dias**.\n\n' +
-          'Mantenha uma postura adequada, respeito e compromisso.'
+          'Sua inscrição foi **aprovada** e você entrou no **período de observação (OBS)**.\n\n' +
+          'Sua postura, atividade e comprometimento serão avaliados.'
         )
         .setFooter({ text: 'Família MoChavãO • Sistema de Inscrições' })
         .setTimestamp();
@@ -129,14 +132,15 @@ module.exports = {
         .setTitle('🟢 Inscrição Aprovada')
         .addFields(
           { name: '👤 Usuário', value: `<@${usuario.id}>`, inline: true },
-          { name: '👮 Aprovado por', value: interaction.user.tag, inline: true }
+          { name: '👮 Aprovado por', value: interaction.user.tag, inline: true },
+          { name: '📌 Status', value: 'Observação (OBS)', inline: true }
         )
         .setFooter({ text: 'Sistema de Inscrições • Família MoChavãO' })
         .setTimestamp();
 
       canalResultados?.send({ embeds: [embedResultado] });
 
-      return interaction.reply('✅ Inscrição aprovada com sucesso.');
+      return interaction.reply('✅ Inscrição aprovada. Usuário está em OBS.');
     }
 
     // =====================================================
@@ -154,23 +158,18 @@ module.exports = {
       atualizarInscricao(usuario.id, { status: 'reprovado_inscricao' });
       removerInscricao(usuario.id);
 
-      // 📩 DM — REPROVADO
       const embedDM = new EmbedBuilder()
         .setColor(0xc0392b)
         .setTitle('❌ Inscrição Reprovada — Família MoChavãO')
         .addFields(
           { name: '📝 Motivo', value: motivo },
-          {
-            name: 'ℹ️ Observação',
-            value: 'Você poderá tentar novamente no futuro.'
-          }
+          { name: 'ℹ️ Observação', value: 'Você poderá tentar novamente no futuro.' }
         )
         .setFooter({ text: 'Família MoChavãO • Sistema de Inscrições' })
         .setTimestamp();
 
       await usuario.send({ embeds: [embedDM] }).catch(() => {});
 
-      // 📢 RESULTADOS — REPROVADO
       const embedResultado = new EmbedBuilder()
         .setColor(0xc0392b)
         .setTitle('🔴 Inscrição Reprovada')

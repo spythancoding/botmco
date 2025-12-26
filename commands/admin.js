@@ -26,51 +26,113 @@ module.exports = {
     }
 
     const embed = new EmbedBuilder()
-      .setColor('#9b59b6')
+      .setColor(0x8b0000) // vermelho escuro (autoridade)
       .setTitle('🛠️ Painel Administrativo — Família MoChavãO')
       .setDescription(
-        '**Comandos administrativos disponíveis**\n\n' +
+        'Este painel reúne os **principais comandos administrativos** disponíveis.\n' +
+        'Utilize com responsabilidade e sempre respeitando a hierarquia da família.'
+      )
 
-        '👥 **Gerenciamento da Família**\n' +
-        '`/familia adicionar` — Adiciona membro à família\n' +
-        '`/familia remover` — Remove membro da família\n' +
-        '`/familia listar` — Painel completo de membros\n\n' +
+      // ======================
+      // FAMÍLIA
+      // ======================
+      .addFields(
+        {
+          name: '👥 Gerenciamento da Família',
+          value:
+            '`/familia adicionar <usuário> <cargo>` — Adiciona membro à família\n' +
+            '`/familia remover <usuário>` — Remove membro da família\n' +
+            '`/familia listar` — Lista completa de membros'
+        },
 
-        '⚠️ **Sistema de Advertências**\n' +
-        '`/adv aplicar <usuário> <motivo> [provas]` — Aplica advertência\n' +
-        '`/adv retirar <usuário>` — Remove última advertência ativa\n' +
-        '• **3 advertências ⇒ blacklist automática de 5 dias**\n\n' +
+        // ======================
+        // INSCRIÇÕES
+        // ======================
+        {
+          name: '📝 Sistema de Inscrições (Site Oficial)',
+          value:
+            '• Inscrições realizadas **exclusivamente pelo site**\n\n' +
+            '`/inscricoes` — Lista inscrições pendentes\n' +
+            '`/verinscricao <usuário>` — Ver detalhes da inscrição\n' +
+            '`/inscricao aprovar <usuário>` — Aprovar inscrição\n' +
+            '`/inscricao reprovar <usuário> <motivo>` — Reprovar inscrição\n' +
+            '`/inscricao reprovartodos` — Reprovar todas as inscrições pendentes'
+        },
 
-        '⛔ **Sistema de Blacklist**\n' +
-        '`/blacklist <usuário> <dias> <motivo> [provas]` — Blacklist temporária\n' +
-        '`/blackperm <usuário> <motivo> <provas>` — Blacklist permanente\n' +
-        '`/rblacklist <usuário>` — Remove blacklist (restrições aplicáveis)\n\n' +
+        // ======================
+        // TESTE
+        // ======================
+        {
+          name: '🧪 Sistema de Teste',
+          value:
+            '`/verteste` — Ver membros em período de teste\n' +
+            '`/teste aprovar <usuário>` — Aprovar período de teste\n' +
+            '`/teste reprovar <usuário> <motivo>` — Reprovar período de teste'
+        },
 
-        '📝 **Sistema de Inscrições (Site Oficial)**\n' +
-        '• As inscrições são feitas **exclusivamente pelo site**\n' +
-        '`/verinscricao` — Ver inscrições pendentes\n' +
-        '`/inscricao aprovar <usuário>` — Aprovar inscrição\n' +
-        '`/inscricao reprovar <usuário> <motivo>` — Reprovar inscrição\n' +
-        '`/inscricao reprovartodos` — Reprovar TODAS as inscrições pendentes\n\n' +
+        // ======================
+        // DISCIPLINA
+        // ======================
+        {
+          name: '⚠️ Sistema Disciplinar',
+          value:
+            '`/adv aplicar <usuário> <motivo> [provas]` — Aplicar advertência\n' +
+            '`/adv retirar <usuário>` — Retirar última advertência\n' +
+            '• **3 advertências ⇒ blacklist automática (5 dias)**'
+        },
 
-        '🧪 **Sistema de Teste**\n' +
-        '`/verteste` — Ver membros em período de teste\n' +
-        '`/teste aprovar <usuário>` — Aprovar teste\n' +
-        '`/teste reprovar <usuário> <motivo>` — Reprovar teste\n\n' +
+        // ======================
+        // BLACKLIST
+        // ======================
+        {
+          name: '⛔ Sistema de Blacklist',
+          value:
+            '`/blacklist <usuário> <dias> <motivo> [provas]` — Blacklist temporária\n' +
+            '`/blackperm <usuário> <motivo> <provas>` — Blacklist permanente\n' +
+            '`/rblacklist <usuário>` — Remover blacklist'
+        },
 
-        '🚧 **Sistemas em Desenvolvimento**\n' +
-        '• Expiração automática de inscrições\n' +
-        '• Histórico de inscrições e reprovações\n' +
-        '• Sistema disciplinar avançado\n' +
-        '• Economia interna (multas, recompensas, VIPs)\n'
+        // ======================
+        // MODERAÇÃO
+        // ======================
+        {
+          name: '🧹 Moderação & Controle',
+          value:
+            '`/limparchat <quantidade>` — Apaga mensagens do canal\n' +
+            '`/lockchat <usuário> <motivo>` — Bloqueia o chat para um usuário\n' +
+            '`/unlockchat <usuário>` — Libera o chat do usuário'
+        },
+
+        // ======================
+        // INFORMAÇÃO
+        // ======================
+        {
+          name: '📢 Comunicação & Informação',
+          value:
+            '`/infofamilia` — Envia informações oficiais da família\n' +
+            '`/inscricao_aviso` — Envia aviso e requisitos de inscrição'
+        },
+
+        // ======================
+        // DESENVOLVIMENTO
+        // ======================
+        {
+          name: '🚧 Sistemas em Evolução',
+          value:
+            '• Normalização avançada de cargos\n' +
+            '• Histórico completo de ações administrativas\n' +
+            '• Sistema disciplinar aprimorado\n' +
+            '• Onboarding interativo pós-aprovação'
+        }
       )
       .setFooter({
-        text: 'Sistema Oficial da Família MoChavãO'
+        text: 'Sistema Administrativo • Família MoChavãO'
       })
       .setTimestamp();
 
     await interaction.reply({
-      embeds: [embed]
+      embeds: [embed],
+      ephemeral: true
     });
   }
 };

@@ -3,6 +3,7 @@ const {
   EmbedBuilder,
   PermissionFlagsBits
 } = require('discord.js');
+
 const {
   isFounder,
   isOwner,
@@ -16,10 +17,14 @@ const {
   salvarMembros
 } = require('../utils/dataManager');
 
-const CARGO_TESTE = '1367402086119243797';
+const {
+  definirCargoFamilia,
+  CARGO_VISITANTE,
+  CARGOS_FAMILIA
+} = require('../utils/familiaRoles');
+
+// 🎭 Cargos finais
 const CARGO_MEMBRO = '1313574261041926225';
-
-
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -70,32 +75,34 @@ module.exports = {
         ephemeral: true
       });
     }
-    
+
     const sub = interaction.options.getSubcommand();
     const usuario = interaction.options.getUser('usuario');
+
     const testes = lerTeste();
     const teste = testes[usuario.id];
 
     if (!teste) {
       return interaction.reply({
-        content: '⚠️ Este usuário não está em teste.',
+        content: '⚠️ Este usuário não está em teste.'
       });
     }
 
-    const membroGuild = await interaction.guild.members.fetch(usuario.id);
+    const membroGuild = await interaction.guild.members
+      .fetch(usuario.id)
+      .catch(() => null);
 
     // =====================
-    // APROVAR TESTE
+    // ✅ APROVAR TESTE
     // =====================
     if (sub === 'aprovar') {
 
-      // ➖ Remove cargo de teste
-      await membroGuild.roles.remove(CARGO_TESTE).catch(() => {});
+      if (membroGuild) {
+        // 🔒 ESTADO FINAL → MEMBRO
+        await definirCargoFamilia(membroGuild, CARGO_MEMBRO);
+      }
 
-      // ➕ Adiciona cargo de membro
-      await membroGuild.roles.add(CARGO_MEMBRO).catch(() => {});
-
-      // ➕ Adiciona no familia.json
+      // 💾 Salva no sistema interno
       const membros = lerMembros();
 
       membros[usuario.id] = {
@@ -110,45 +117,49 @@ module.exports = {
       // ❌ Remove do teste.json
       removerTeste(usuario.id);
 
-      // 📩 DM EMBED
+      // 📩 DM
       const embedDM = new EmbedBuilder()
-        .setColor('Green')
-        .setTitle('🏆 Teste Aprovado')
+        .setColor(0x2ecc71)
+        .setTitle('🏆 Teste Aprovado — Família MoChavãO')
         .setDescription(
-          'Parabéns! Você foi **aprovado definitivamente** na Família **MoChavãO**.'
+          'Parabéns!\n\n' +
+          'Você foi **aprovado definitivamente** e agora é um **Membro oficial da Família MoChavãO**.'
         )
-        .setFooter({ text: 'Família MoChavãO' });
+        .setFooter({ text: 'Família MoChavãO • Sistema de Teste' })
+        .setTimestamp();
 
       await usuario.send({ embeds: [embedDM] }).catch(() => {});
 
-      return interaction.reply(`🏆 **${usuario.tag}** aprovado e adicionado à família.`);
+      return interaction.reply(`🏆 **${usuario.tag}** aprovado e integrado à família.`);
     }
 
     // =====================
-    // REPROVAR TESTE
+    // ❌ REPROVAR TESTE
     // =====================
     if (sub === 'reprovar') {
       const motivo = interaction.options.getString('motivo');
 
-      // ❌ Remove do teste
+      if (membroGuild) {
+        // 🔒 VOLTA AO ESTADO BASE
+        await definirCargoFamilia(membroGuild, CARGO_VISITANTE);
+      }
+
+      // ❌ Remove do teste.json
       removerTeste(usuario.id);
 
-      // ➖ Remove cargo de teste
-      await membroGuild.roles.remove(CARGO_TESTE).catch(() => {});
-
       const embedDM = new EmbedBuilder()
-        .setColor('Red')
-        .setTitle('❌ Teste Reprovado')
+        .setColor(0xc0392b)
+        .setTitle('❌ Teste Reprovado — Família MoChavãO')
         .addFields({
-          name: 'Motivo',
+          name: '📝 Motivo',
           value: motivo
         })
-        .setFooter({ text: 'Família MoChavãO' });
+        .setFooter({ text: 'Família MoChavãO • Sistema de Teste' })
+        .setTimestamp();
 
       await usuario.send({ embeds: [embedDM] }).catch(() => {});
 
-      return interaction.reply(`❌ **${usuario.tag}** foi reprovado no teste.`);
+      return interaction.reply(`❌ **${usuario.tag}** foi reprovado no período de teste.`);
     }
-
   }
 };
