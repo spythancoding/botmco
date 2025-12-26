@@ -317,64 +317,48 @@ if (sub === 'listar') {
   // ======================
   // 🔘 BOTÕES
   // ======================
-  const botoesDashboard = (ativo = false) =>
-    new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('dash')
-        .setLabel('📊 Painel')
-        .setStyle(ButtonStyle.Primary)
-        .setDisabled(ativo),
+  const botoesDashboard = (ativo = false) => [
+  new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('dash')
+      .setLabel('📊 Painel')
+      .setStyle(ButtonStyle.Primary)
+      .setDisabled(ativo),
 
-      new ButtonBuilder()
-        .setCustomId('donos')
-        .setLabel('👑 Donos')
-        .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId('donos')
+      .setLabel('👑 Donos')
+      .setStyle(ButtonStyle.Secondary),
 
-      new ButtonBuilder()
-        .setCustomId('diretoria')
-        .setLabel('🎯 Diretoria')
-        .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId('diretoria')
+      .setLabel('🎯 Diretoria')
+      .setStyle(ButtonStyle.Secondary),
 
-      new ButtonBuilder()
-        .setCustomId('admins')
-        .setLabel('🛡️ Admins')
-        .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId('admins')
+      .setLabel('🛡️ Admins')
+      .setStyle(ButtonStyle.Secondary)
+  ),
 
-      new ButtonBuilder()
-        .setCustomId('membro_plus')
-        .setLabel('⭐ Membro +')
-        .setStyle(ButtonStyle.Secondary),
+  new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('membro_plus')
+      .setLabel('⭐ Membro +')
+      .setStyle(ButtonStyle.Secondary),
 
-      new ButtonBuilder()
-        .setCustomId('legacy')
-        .setLabel('🕯️ Legacy')
-        .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId('legacy')
+      .setLabel('🕯️ Legacy')
+      .setStyle(ButtonStyle.Secondary),
 
-      new ButtonBuilder()
-        .setCustomId('membro')
-        .setLabel('👤 Membro')
-        .setStyle(ButtonStyle.Secondary)
-    );
+    new ButtonBuilder()
+      .setCustomId('membro')
+      .setLabel('👤 Membro')
+      .setStyle(ButtonStyle.Secondary)
+  )
+];
 
-  const botoesPag = (pagina, total) =>
-    new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('prev')
-        .setLabel('⬅️')
-        .setStyle(ButtonStyle.Primary)
-        .setDisabled(pagina === 0),
-
-      new ButtonBuilder()
-        .setCustomId('next')
-        .setLabel('➡️')
-        .setStyle(ButtonStyle.Primary)
-        .setDisabled(pagina >= total - 1),
-
-      new ButtonBuilder()
-        .setCustomId('voltar')
-        .setLabel('↩️ Voltar')
-        .setStyle(ButtonStyle.Secondary)
-    );
 
   let visualizacao = 'dash';
   let pagina = 0;
