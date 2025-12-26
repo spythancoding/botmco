@@ -1,2 +1,6 @@
 node_modules/
 .env
+data/inscritos.json
+data/membros.json
+data/historico.json
+data/teste.json

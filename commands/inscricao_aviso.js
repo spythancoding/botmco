@@ -45,7 +45,6 @@ module.exports = {
         '• Ser ativo\n' +
         '• Ter Discord\n' +
         '• Ter no mínimo 14 anos\n\n' +
-        'É de suma importância que todos os candidatos leiam as 📜・regras no seu respectivo canal.\n\n' +
         'OBS: Não acolhemos em nossa família outros líderes (principalmente rivais), membros em blacklist.\n\n' +
         '# Realize o teste utilizando /inscrever. BOA SORTE!'
       )

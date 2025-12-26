@@ -4,44 +4,61 @@ const { EmbedBuilder } = require('discord.js');
 const WELCOME_CHANNEL_ID = '1313574352993648651';
 const VISITOR_ROLE_ID = '1439059436789305395';
 
+// IDs importantes
+const CANAL_REGRAS = '1439091960659972106';
+const CANAL_INSCRICAO = '1450516667397439670';
+
 module.exports = {
   name: 'guildMemberAdd',
   async execute(member) {
     const channel = member.guild.channels.cache.get(WELCOME_CHANNEL_ID);
     if (!channel) return;
 
-    // Adiciona automaticamente o cargo de visitante
+    // 🏷️ Cargo visitante
     const visitorRole = member.guild.roles.cache.get(VISITOR_ROLE_ID);
     if (visitorRole) {
       try {
         await member.roles.add(visitorRole);
       } catch (e) {
-        console.error(`Erro ao adicionar cargo de visitante: ${e}`);
+        console.error(`Erro ao adicionar cargo de visitante: ${e.message}`);
       }
     }
 
-    // Embed de boas-vindas (FAMÍLIA RPG)
+    // ✨ Embed de boas-vindas
     const embed = new EmbedBuilder()
-      .setColor('#2ecc71')
-      .setTitle('👋 BEM-VINDO À FAMÍLIA MOCHAVÃO!!')
+      .setColor('#9b59b6')
+      .setTitle('👋 Bem-vindo à Família MoChavãO')
       .setDescription(
         `Seja bem-vindo(a), <@${member.id}>!\n\n` +
-        `**Para se dar bem por aqui:**\n\n` +
-        `📜 Leia as <#1439091960659972106>\n` +
-        `🧾 Torne-se um membro da família através da <#1450516667397439670>\n` +
-        `💬 Apresente-se no <#1313574410975838248>\n\n` +
-        `Convide seus amigos também: [Convite do servidor](https://discord.gg/JfaKQkcudy)`
+        `A **Família MoChavãO** é baseada em **hierarquia, disciplina e respeito**.\n` +
+        `Para iniciar sua jornada conosco, siga os passos abaixo:\n\n` +
+
+        `📜 **Leia atentamente as regras** no canal <#${CANAL_REGRAS}>\n` +
+        `🧾 **Realize sua inscrição oficial** pelo canal <#${CANAL_INSCRICAO}>\n\n` +
+
+        `Após a inscrição, nossa equipe irá analisar sua solicitação.\n` +
+        `O resultado será enviado diretamente via **mensagem privada** no Discord.`
       )
       .addFields(
-        { name: '🆔 ID', value: member.id, inline: true },
-        { name: '📛 Nome', value: member.user.tag, inline: true },
-        { name: '🎭 Cargo inicial', value: visitorRole ? visitorRole.name : 'Não atribuído', inline: true },
-        { name: '🎮 Servidor de SAMP', value: '104.234.189.170:7777', inline: true }
+        {
+          name: '🎭 Cargo inicial',
+          value: visitorRole ? visitorRole.name : 'Não atribuído',
+          inline: true
+        },
+        {
+          name: '🎮 Servidor SAMP',
+          value: '104.234.189.170:7777',
+          inline: true
+        }
       )
-      .setThumbnail(member.user.displayAvatarURL())
-      .setFooter({ text: 'Sistema automático • Família RPG' })
+      .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+      // 👉 quando quiser, troque pelo banner oficial da família
+      .setImage('https://cdn.discordapp.com/attachments/1450348057295061045/1453925716835176458/ChatGPT_Image_23_de_dez._de_2025_22_08_26.png?ex=694f3957&is=694de7d7&hm=9d1ea827fb668f53013035121d2f2dfd73824dcecd6c943974268002ba25ca1b&')
+      .setFooter({
+        text: 'Família MoChavãO • União, respeito e hierarquia'
+      })
       .setTimestamp();
 
-    channel.send({ embeds: [embed] });
+    await channel.send({ embeds: [embed] });
   }
 };

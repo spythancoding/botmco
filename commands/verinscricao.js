@@ -1,22 +1,17 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { getInscricao } = require('../utils/dataManager');
-const {
-  isFounder,
-  isOwner,
-  isSubOwner
-} = require('../utils/permissions');
+const { lerInscritos } = require('../utils/dataManager');
+const { isFounder, isOwner, isSubOwner } = require('../utils/permissions');
 
-const safe = v => v ? String(v) : 'Não informado';
+function v(valor) {
+  if (!valor) return '—';
+  if (typeof valor === 'string' && valor.trim() === '') return '—';
+  return String(valor);
+}
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('verinscricao')
-    .setDescription('Ver inscrição detalhada de um usuário')
-    .addUserOption(opt =>
-      opt.setName('usuario')
-        .setDescription('Usuário inscrito')
-        .setRequired(true)
-    ),
+    .setDescription('Ver inscrições pendentes'),
 
   async execute(interaction) {
     const member = interaction.member;
@@ -27,57 +22,53 @@ module.exports = {
       !isSubOwner(member)
     ) {
       return interaction.reply({
-        content: '❌ Você não tem permissão.',
+        content: '❌ Você não tem permissão para usar este comando.',
         ephemeral: true
       });
     }
 
-    const usuario = interaction.options.getUser('usuario');
-    const inscricao = getInscricao(usuario.id);
+    const inscritos = Object.values(lerInscritos())
+      .filter(i => i.status === 'pendente_inscricao');
 
-    if (!inscricao || inscricao.status !== 'pendente_inscricao') {
+    if (!inscritos.length) {
       return interaction.reply({
-        content: '❌ Inscrição pendente não encontrada para este usuário.',
+        content: '📭 Nenhuma inscrição pendente.',
         ephemeral: true
       });
     }
 
-    const d = inscricao.dados;
+    const embeds = inscritos.map((i, idx) => {
+      const d = i.dados || {};
 
-    const embed = new EmbedBuilder()
-      .setColor('#e74c3c')
-      .setTitle('📥 Nova Inscrição Recebida')
-      .setDescription(
-        'Uma nova candidatura foi enviada para a **Família MoChavãO**.\n' +
-        'Analise os dados abaixo com atenção.'
-      )
-      .addFields(
-        { name: '🆔 Discord ID', value: usuario.id },
+      return new EmbedBuilder()
+        .setColor('#9b59b6')
+        .setTitle(`📋 Inscrição #${idx + 1}`)
+        .addFields(
+          { name: '👤 Usuário', value: `<@${i.userId}>`, inline: true },
+          { name: '🎮 Nick', value: v(d.nick), inline: true },
+          { name: '📛 Nome', value: v(d.nome), inline: true },
 
-        { name: '👤 Identificação', value:
-          `**Nick:** ${safe(d.nick)}\n` +
-          `**Nome:** ${safe(d.nome)}\n` +
-          `**Idade:** ${safe(d.idade)}`
-        },
+          { name: '🎂 Idade', value: v(d.idade), inline: true },
+          { name: '⭐ Nível', value: v(d.nivelConta), inline: true },
+          { name: '⏱️ Horas RG', value: v(d.horasRG), inline: true },
 
-        { name: '🎮 Conta no Servidor', value:
-          `**Nível:** ${safe(d.nivelConta)}\n` +
-          `**Horas no /RG:** ${safe(d.horasRG)}\n` +
-          `**Liderança:** ${safe(d.liderOrg)}`
-        },
+          { name: '🛡️ Líder Org', value: v(d.liderOrg), inline: true },
+          { name: '🎧 Microfone', value: v(d.microfone), inline: true },
+          { name: '📞 Call', value: v(d.call), inline: true },
 
-        { name: '🎙️ Comunicação', value:
-          `**Microfone:** ${safe(d.microfone)}\n` +
-          `**Call:** ${safe(d.call)}`
-        },
+          { name: '⏰ Horário', value: v(d.horario), inline: true },
+          { name: '📱 WhatsApp', value: v(d.whatsapp), inline: true },
 
-        { name: '⏰ Disponibilidade', value: safe(d.horario) },
+          {
+            name: '📝 Observações',
+            value: v(d.observacoes),
+            inline: false
+          }
+        )
+        .setFooter({ text: 'Status: Pendente' })
+        .setTimestamp();
+    });
 
-        { name: '📝 Observações', value: safe(d.observacoes) }
-      )
-      .setFooter({ text: 'Sistema de Inscrição • Família MoChavãO' })
-      .setTimestamp();
-
-    await interaction.reply({ embeds: [embed] });
+    await interaction.reply({ embeds });
   }
 };

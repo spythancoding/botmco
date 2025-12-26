@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { getInscricao } = require('../utils/dataManager');
+const { notificarNovaInscricaoEmbed } = require('../utils/notifier');
+
 
 const {
   lerInscritos,
@@ -50,7 +52,11 @@ router.post('/inscricao', async (req, res) => {
     // ✅ Criar inscrição
     criarInscricao(userId, dados);
 
+    // 🔔 Notifica admins (agora com embed bonita)
+    await notificarNovaInscricaoEmbed(userId, dados);
+
     return res.json({ success: true });
+
 
   } catch (err) {
     console.error('❌ Erro na API de inscrição:', err);
