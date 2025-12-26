@@ -1,6 +1,16 @@
+# Dependências
 node_modules/
+
+# Variáveis de ambiente
 .env
-data/inscritos.json
-data/membros.json
-data/historico.json
-data/teste.json
+.env.*
+
+# Bancos locais (NUNCA versionar)
+data/*.json
+
+# Logs
+logs/
+*.log
+
+# Sistema
+.DS_Store
