@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { infoFamiliaEmbed } = require('../embeds/infoFamiliaEmbed');
+const { infofamiliaEmbed } = require('../embeds/infofamiliaEmbed');
 const {
   isFounder,
   isOwner,
@@ -28,7 +28,7 @@ module.exports = {
 
     // 📢 Envia a embed no canal atual
     await interaction.channel.send({
-      embeds: [infoFamiliaEmbed]
+      embeds: [infofamiliaEmbed]
     });
 
     // 🤫 Resposta invisível para o público
