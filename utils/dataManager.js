@@ -147,6 +147,39 @@ function salvarBlacklist(blacklist) {
   salvarJSON(blacklistPath, blacklist);
 }
 
+function temBlacklistAtiva(userId) {
+  const blacklist = lerBlacklist();
+  return blacklist[userId]?.ativa === true;
+}
+
+function processarBlacklistsTemporariasExpiradas() {
+  const blacklist = lerBlacklist();
+  const agora = new Date();
+
+  const expiradas = [];
+
+  for (const id in blacklist) {
+    const reg = blacklist[id];
+
+    if (
+      reg.ativa === true &&
+      reg.tipo === 'TEMP' &&
+      reg.fim &&
+      new Date(reg.fim) <= agora
+    ) {
+      reg.ativa = false;
+      reg.removidaPor = 'SISTEMA (EXPIRAÇÃO)';
+      reg.dataRemocao = agora.toISOString();
+
+      expiradas.push(reg);
+    }
+  }
+
+  salvarBlacklist(blacklist);
+  return expiradas;
+}
+
+
 
 function aprovarInscricao(userId, aprovadoPor) {
   const inscritos = lerInscritos();
@@ -205,6 +238,9 @@ module.exports = {
     // Blacklist
   lerBlacklist,
   salvarBlacklist,
+  temBlacklistAtiva,
+  processarBlacklistsTemporariasExpiradas,
+  
 
   // Histórico
   lerHistorico,

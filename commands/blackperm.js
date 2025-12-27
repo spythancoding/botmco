@@ -1,8 +1,26 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { lerBlacklist, salvarBlacklist } = require('../utils/dataManager');
+const { SlashCommandBuilder } = require('discord.js');
+
+const {
+  lerBlacklist,
+  salvarBlacklist,
+  temBlacklistAtiva,
+  lerMembros,
+  salvarMembros
+} = require('../utils/dataManager');
+
+const {
+  embedErroBlacklist,
+  embedDmBlacklistPerm,
+  embedLogAplicacao,
+  embedAvisoFamiliaBlacklist,
+  embedConfirmacao
+} = require('../embeds/blacklistEmbeds');
+
 const { isFounder, isOwner } = require('../utils/permissions');
 
 const BLACKPERM_ROLE_ID = '1451676459545661602';
+const CANAL_AVISOS_FAMILIA = '1454489826748535061';
+const LOG_BLACKLIST_CHANNEL_ID = '1313574376729350225';
 
 function isLinkValido(texto) {
   return /^https?:\/\/\S+/i.test(texto);
@@ -24,20 +42,18 @@ module.exports = {
     )
     .addStringOption(o =>
       o.setName('provas')
-        .setDescription('Provas (link) – opcional')
+        .setDescription('Provas (link)')
         .setRequired(false)
     ),
 
   async execute(interaction) {
-    // 🔐 Permissão
     if (!isFounder(interaction.member) && !isOwner(interaction.member)) {
       return interaction.reply({
-        content: '❌ Acesso restrito.',
+        embeds: [embedErroBlacklist({ mensagem: 'Acesso restrito.' })],
         ephemeral: true
       });
     }
 
-    // ⏳ Segura a interaction (cargos + IO)
     await interaction.deferReply();
 
     const user = interaction.options.getUser('usuario');
@@ -45,77 +61,101 @@ module.exports = {
     const provasInput = interaction.options.getString('provas');
     const provas = provasInput || 'Não informadas';
 
-    // 🔎 Valida provas SOMENTE se informadas
     if (provasInput && !isLinkValido(provasInput)) {
       return interaction.editReply({
-        content: '⚠️ Provas devem ser links válidos.'
+        embeds: [embedErroBlacklist({ mensagem: 'Provas devem ser links válidos.' })]
       });
     }
 
-    const blacklist = lerBlacklist();
-
-    if (blacklist[user.id]?.ativa) {
+    if (temBlacklistAtiva(user.id)) {
       return interaction.editReply({
-        content: '⚠️ Este usuário já possui blacklist ativa.'
+        embeds: [embedErroBlacklist({ mensagem: 'Este usuário já possui blacklist ativa.' })]
       });
     }
 
     // ☠️ REGISTRO DEFINITIVO
+    const blacklist = lerBlacklist();
+    const agora = new Date();
+
     blacklist[user.id] = {
-      userId: user.id,
+      id: user.id,
       tipo: 'PERM',
       motivo,
       provas,
       aplicadoPor: interaction.user.id,
-      data: new Date().toISOString(),
+      dataAplicacao: agora.toISOString(),
       ativa: true,
-      origem: 'MANUAL'
+      origem: 'MANUAL',
+
+      dias: null,
+      inicio: null,
+      fim: null,
+
+      removidaPor: null,
+      dataRemocao: null
     };
 
     salvarBlacklist(blacklist);
 
-    // 🎭 Atualização de cargos
+    // ❌ Remove da família
+    const membros = lerMembros();
+    if (membros[user.id]) {
+      delete membros[user.id];
+      salvarMembros(membros);
+    }
+
+    // 🎭 Cargos
     const guildMember = await interaction.guild.members.fetch(user.id).catch(() => null);
     if (guildMember) {
       const cargosRemover = guildMember.roles.cache.filter(
         r => r.id !== interaction.guild.id && !r.managed
       );
+
       await guildMember.roles.remove(cargosRemover);
       await guildMember.roles.add(BLACKPERM_ROLE_ID);
     }
 
-    // ☠️ DM FINAL (sem provas)
-    try {
-      await user.send({
+    // 📩 DM
+    await user.send({
+      embeds: [embedDmBlacklistPerm({ motivo })]
+    }).catch(() => {});
+
+    // 📢 Aviso à família
+    const canalFamilia = interaction.guild.channels.cache.get(CANAL_AVISOS_FAMILIA);
+    if (canalFamilia) {
+      canalFamilia.send({
         embeds: [
-          new EmbedBuilder()
-            .setColor('#000000')
-            .setTitle('🚫 BLACKLIST PERMANENTE')
-            .setDescription(
-              `Você foi **REMOVIDO DEFINITIVAMENTE** da Família MoChavãO.\n\n` +
-              `Esta decisão é **IRREVERSÍVEL**.\n` +
-              `Não haverá revisão ou recurso.`
-            )
-            .addFields(
-              { name: '📌 Motivo', value: motivo }
-            )
-            .setFooter({ text: 'Administração da Família MoChavãO' })
-            .setTimestamp()
+          embedAvisoFamiliaBlacklist({
+            usuarioId: user.id,
+            tipo: 'PERM'
+          })
         ]
       });
-    } catch {}
+    }
 
-    // ✅ CONFIRMAÇÃO AO ADMINISTRADOR
+    // 📢 Log administrativo
+    const logChannel = interaction.guild.channels.cache.get(LOG_BLACKLIST_CHANNEL_ID);
+    if (logChannel) {
+      logChannel.send({
+        embeds: [
+          embedLogAplicacao({
+            usuarioId: user.id,
+            tipo: 'PERM',
+            motivo,
+            provas,
+            executorId: interaction.user.id
+          })
+        ]
+      });
+    }
+
+    // ✅ Confirmação
     return interaction.editReply({
       embeds: [
-        new EmbedBuilder()
-          .setColor('#000000')
-          .setTitle('☠️ Blacklist Permanente Aplicada')
-          .setDescription(
-            `O usuário <@${user.id}> foi **removido definitivamente** da família.`
-          )
-          .setFooter({ text: 'Sistema Disciplinar • Família MoChavãO' })
-          .setTimestamp()
+        embedConfirmacao({
+          titulo: '☠️ Blacklist Permanente Aplicada',
+          descricao: `O usuário <@${user.id}> foi **removido definitivamente** da família.`
+        })
       ]
     });
   }

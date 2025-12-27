@@ -1,62 +1,79 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { lerBlacklist, salvarBlacklist } = require('../utils/dataManager');
+const { SlashCommandBuilder } = require('discord.js');
+
+const {
+  lerBlacklist,
+  salvarBlacklist,
+  temBlacklistAtiva
+} = require('../utils/dataManager');
+
+const {
+  embedErroBlacklist,
+  embedConfirmacao,
+  embedLogRemocao,
+  embedDmFimBlacklist
+} = require('../embeds/blacklistEmbeds');
+
 const { isFounder, isOwner } = require('../utils/permissions');
 
 const DEV_ID = '353946672549724161';
 
 const BLACKLIST_TEMP_ROLE_ID = '1451323733129302128';
 const BLACKPERM_ROLE_ID = '1451676459545661602';
-const CARGO_MEMBRO = '1439059436789305395'; // membro comum
 const LOG_ADMIN_CHANNEL_ID = '1313574358459093044';
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('rblacklist')
-    .setDescription('Encerra afastamento por blacklist temporária')
+    .setDescription('Encerra uma blacklist ativa')
     .addUserOption(o =>
       o.setName('usuario')
-        .setDescription('Usuário a ser reintegrado')
+        .setDescription('Usuário')
         .setRequired(true)
     ),
 
   async execute(interaction) {
     if (!isFounder(interaction.member) && !isOwner(interaction.member)) {
       return interaction.reply({
-        content: '❌ Acesso restrito.',
+        embeds: [embedErroBlacklist({ mensagem: 'Acesso restrito.' })],
         ephemeral: true
       });
     }
 
     const user = interaction.options.getUser('usuario');
+
+    if (!temBlacklistAtiva(user.id)) {
+      return interaction.reply({
+        embeds: [embedErroBlacklist({ mensagem: 'Este usuário não possui blacklist ativa.' })],
+        ephemeral: true
+      });
+    }
+
     const blacklist = lerBlacklist();
     const registro = blacklist[user.id];
 
-    if (!registro) {
-      return interaction.reply({
-        content: '⚠️ Este usuário não possui blacklist ativa.',
-        ephemeral: true
-      });
-    }
-
-    // ⛔ BLACKLIST PERMANENTE (bloqueio total)
+    // ⛔ BLOQUEIO DE PERMANENTE
     if (registro.tipo === 'PERM' && interaction.user.id !== DEV_ID) {
       return interaction.reply({
-        content:
-          '⛔ **BLACKLIST PERMANENTE**\n\n' +
-          'Esta punição é **irreversível**.\n' +
-          'Somente o **DESENVOLVEDOR DO SISTEMA** pode removê-la.',
+        embeds: [
+          embedErroBlacklist({
+            mensagem:
+              'Blacklist permanente é irreversível.\nSomente o desenvolvedor do sistema pode removê-la.'
+          })
+        ],
         ephemeral: true
       });
     }
 
-    // 🧹 Remove registro
-    delete blacklist[user.id];
+    // 🔓 ENCERRAR BLACKLIST
+    registro.ativa = false;
+    registro.removidaPor = interaction.user.id;
+    registro.dataRemocao = new Date().toISOString();
+
     salvarBlacklist(blacklist);
 
-    // 👤 Atualiza cargos (se estiver no servidor)
-    let guildMember = null;
+    // 🎭 Atualiza cargos (remove punição)
     try {
-      guildMember = await interaction.guild.members.fetch(user.id);
+      const guildMember = await interaction.guild.members.fetch(user.id);
 
       if (guildMember.roles.cache.has(BLACKLIST_TEMP_ROLE_ID)) {
         await guildMember.roles.remove(BLACKLIST_TEMP_ROLE_ID);
@@ -65,48 +82,29 @@ module.exports = {
       if (guildMember.roles.cache.has(BLACKPERM_ROLE_ID)) {
         await guildMember.roles.remove(BLACKPERM_ROLE_ID);
       }
-
-      // ➕ Retorno como MEMBRO COMUM
-      if (!guildMember.roles.cache.has(CARGO_MEMBRO)) {
-        await guildMember.roles.add(CARGO_MEMBRO);
-      }
     } catch {
       // usuário fora do servidor
     }
 
     // 📩 DM AO USUÁRIO
-    try {
-      await user.send({
-        embeds: [
-          new EmbedBuilder()
-            .setColor('#2ecc71')
-            .setTitle('✅ Retorno Liberado')
-            .setDescription(
-              `Seu **afastamento temporário** foi encerrado.\n\n` +
-              `Você retornou à Família MoChavãO como **membro comum**.\n\n` +
-              `⚠️ Mantenha uma postura adequada para evitar novas punições.`
-            )
-            .setFooter({ text: 'Administração da Família MoChavãO' })
-            .setTimestamp()
-        ]
-      });
-    } catch {}
+    await user.send({
+      embeds: [
+        embedDmFimBlacklist({
+          tipo: registro.tipo
+        })
+      ]
+    }).catch(() => {});
 
-    // 📢 LOG ADMINISTRATIVO (RETORNO)
+    // 📢 LOG ADMINISTRATIVO
     const logChannel = interaction.guild.channels.cache.get(LOG_ADMIN_CHANNEL_ID);
-    if (logChannel && registro.tipo === 'TEMP') {
+    if (logChannel) {
       logChannel.send({
         embeds: [
-          new EmbedBuilder()
-            .setColor('#3498db')
-            .setTitle('🔓 Retorno de Blacklist Temporária')
-            .addFields(
-              { name: '👤 Usuário', value: `<@${user.id}>` },
-              { name: '📌 Motivo original', value: registro.motivo || 'Não informado' },
-              { name: '🛡️ Liberado por', value: `<@${interaction.user.id}>` }
-            )
-            .setFooter({ text: 'Sistema Disciplinar • Família MoChavãO' })
-            .setTimestamp()
+          embedLogRemocao({
+            usuarioId: user.id,
+            tipo: registro.tipo,
+            executorId: interaction.user.id
+          })
         ]
       });
     }
@@ -114,13 +112,10 @@ module.exports = {
     // ✅ CONFIRMAÇÃO AO EXECUTOR
     return interaction.reply({
       embeds: [
-        new EmbedBuilder()
-          .setColor('#2ecc71')
-          .setTitle('✅ Blacklist Encerrada')
-          .setDescription(
-            `O usuário <@${user.id}> foi **reintegrado como membro comum**.`
-          )
-          .setTimestamp()
+        embedConfirmacao({
+          titulo: '🔓 Blacklist Encerrada',
+          descricao: `A blacklist de <@${user.id}> foi **encerrada com sucesso**.`
+        })
       ]
     });
   }

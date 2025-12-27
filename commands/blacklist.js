@@ -1,19 +1,34 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { lerBlacklist, salvarBlacklist } = require('../utils/dataManager');
+const { SlashCommandBuilder } = require('discord.js');
+
+const {
+  lerBlacklist,
+  salvarBlacklist,
+  temBlacklistAtiva,
+  lerMembros,
+  salvarMembros
+} = require('../utils/dataManager');
+
+const {
+  embedErroBlacklist,
+  embedDmBlacklistTemp,
+  embedLogAplicacao,
+  embedAvisoFamiliaBlacklist,
+  embedConfirmacao
+} = require('../embeds/blacklistEmbeds');
+
 const { isFounder, isOwner, isSubOwner } = require('../utils/permissions');
 
 const BLACKLIST_TEMP_ROLE_ID = '1451323733129302128';
+const CANAL_AVISOS_FAMILIA = '1454489826748535061';
 const LOG_BLACKLIST_CHANNEL_ID = '1313574376729350225';
-
-function isLinkValido(texto) {
-  return /^https?:\/\/\S+/i.test(texto);
-}
 
 function calcularFim(dias) {
   const d = new Date();
   d.setDate(d.getDate() + dias);
   return d;
 }
+
+
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -38,7 +53,7 @@ module.exports = {
     )
     .addStringOption(o =>
       o.setName('provas')
-        .setDescription('Provas (link) – opcional')
+        .setDescription('Provas (link)')
         .setRequired(false)
     ),
 
@@ -49,12 +64,11 @@ module.exports = {
       !isSubOwner(interaction.member)
     ) {
       return interaction.reply({
-        content: '❌ Acesso negado.',
+        embeds: [embedErroBlacklist({ mensagem: 'Acesso restrito.' })],
         ephemeral: true
       });
     }
 
-    // ⏳ Segura interaction (pode envolver cargos)
     await interaction.deferReply();
 
     const user = interaction.options.getUser('usuario');
@@ -63,26 +77,20 @@ module.exports = {
     const provasInput = interaction.options.getString('provas');
     const provas = provasInput || 'Não informadas';
 
-    // 🔎 Validação SOMENTE se provas forem informadas
-    if (provasInput && !isLinkValido(provasInput)) {
+
+    if (temBlacklistAtiva(user.id)) {
       return interaction.editReply({
-        content: '⚠️ Provas devem ser links válidos.'
+        embeds: [embedErroBlacklist({ mensagem: 'Este usuário já possui blacklist ativa.' })]
       });
     }
 
-    const blacklist = lerBlacklist();
-
-    if (blacklist[user.id]?.ativa) {
-      return interaction.editReply({
-        content: '⚠️ Este usuário já possui blacklist ativa.'
-      });
-    }
-
+    // 🧾 REGISTRO DA BLACKLIST
     const inicio = new Date();
     const fim = calcularFim(dias);
+    const blacklist = lerBlacklist();
 
     blacklist[user.id] = {
-      userId: user.id,
+      id: user.id,
       tipo: 'TEMP',
       dias,
       inicio: inicio.toISOString(),
@@ -90,52 +98,77 @@ module.exports = {
       motivo,
       provas,
       aplicadoPor: interaction.user.id,
+      dataAplicacao: inicio.toISOString(),
       ativa: true,
-      origem: 'MANUAL'
+      origem: 'MANUAL',
+
+      removidaPor: null,
+      dataRemocao: null
     };
 
     salvarBlacklist(blacklist);
 
-    // 🎭 Atualização de cargos
+    // ❌ Remove da família
+    const membros = lerMembros();
+    if (membros[user.id]) {
+      delete membros[user.id];
+      salvarMembros(membros);
+    }
+
+    // 🎭 Cargos
     const guildMember = await interaction.guild.members.fetch(user.id).catch(() => null);
     if (guildMember) {
       const cargosRemover = guildMember.roles.cache.filter(
         r => r.id !== interaction.guild.id && !r.managed
       );
+
       await guildMember.roles.remove(cargosRemover);
       await guildMember.roles.add(BLACKLIST_TEMP_ROLE_ID);
     }
 
-    // 📢 LOG ADMINISTRATIVO
-    const logChannel = interaction.guild.channels.cache.get(LOG_BLACKLIST_CHANNEL_ID);
-    if (logChannel) {
-      logChannel.send({
+    // 📩 DM
+    await user.send({
+      embeds: [embedDmBlacklistTemp({ dias, motivo })]
+    }).catch(() => {});
+
+    // 📢 Aviso à família
+    const canalFamilia = interaction.guild.channels.cache.get(CANAL_AVISOS_FAMILIA);
+    if (canalFamilia) {
+      canalFamilia.send({
         embeds: [
-          new EmbedBuilder()
-            .setColor('#c0392b')
-            .setTitle('⛔ Blacklist Temporária Aplicada')
-            .addFields(
-              { name: '👤 Usuário', value: `<@${user.id}>` },
-              { name: '⏳ Duração', value: `${dias} dias` },
-              { name: '📌 Motivo', value: motivo },
-              { name: '🔗 Provas', value: provas }
-            )
-            .setFooter({ text: 'Sistema Disciplinar • Família MoChavãO' })
-            .setTimestamp()
+          embedAvisoFamiliaBlacklist({
+            usuarioId: user.id,
+            tipo: 'TEMP',
+            dias
+          })
         ]
       });
     }
 
-    // ✅ CONFIRMAÇÃO
+    // 📢 Log administrativo
+    const logChannel = interaction.guild.channels.cache.get(LOG_BLACKLIST_CHANNEL_ID);
+    if (logChannel) {
+      logChannel.send({
+        embeds: [
+          embedLogAplicacao({
+            usuarioId: user.id,
+            tipo: 'TEMP',
+            dias,
+            motivo,
+            provas,
+            executorId: interaction.user.id
+          })
+        ]
+      });
+    }
+
+    // ✅ Confirmação
     return interaction.editReply({
       embeds: [
-        new EmbedBuilder()
-          .setColor('#c0392b')
-          .setTitle('⛔ Blacklist Aplicada')
-          .setDescription(
-            `O usuário <@${user.id}> foi **afastado por ${dias} dias**.`
-          )
-          .setTimestamp()
+        embedConfirmacao({
+          titulo: '⛔ Blacklist Temporária Aplicada',
+          descricao: `O usuário <@${user.id}> foi afastado por **${dias} dias**.`
+        })
       ]
     });
   }

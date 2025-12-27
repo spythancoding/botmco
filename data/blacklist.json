@@ -9,5 +9,31 @@
     "provas": "https://www.youtube.com/watch?v=9wVmCLtuUx0",
     "aplicadoPor": "229733619575291905",
     "ativa": true
+  },
+  "353946672549724161": {
+    "userId": "353946672549724161",
+    "tipo": "TEMP",
+    "dias": 3,
+    "inicio": "2025-12-27T14:48:29.585Z",
+    "fim": "2025-12-30T14:48:29.585Z",
+    "motivo": "teste",
+    "provas": "Não informadas",
+    "aplicadoPor": "353946672549724161",
+    "ativa": true,
+    "origem": "MANUAL"
+  },
+  "741130617923567656": {
+    "id": "741130617923567656",
+    "tipo": "TEMP",
+    "dias": 30,
+    "inicio": "2025-12-27T16:25:47.485Z",
+    "fim": "2026-01-26T16:25:47.485Z",
+    "motivo": "teste.",
+    "provas": "Não informadas",
+    "aplicadoPor": "353946672549724161",
+    "ativa": false,
+    "origem": "MANUAL",
+    "removidaPor": "353946672549724161",
+    "dataRemocao": "2025-12-27T16:26:23.188Z"
   }
 }

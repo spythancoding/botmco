@@ -29,8 +29,13 @@ const {
 // =====================================================
 // 🔧 CONFIGURAÇÕES FIXAS
 // =====================================================
-const CANAL_ADM = '1440166535602770032';
+
 const GUILD_ID = '1313568206132220034';
+const {
+  processarBlacklistsTemporariasExpiradas
+} = require('./utils/dataManager');
+
+
 
 const BLACKLIST_TEMP_ROLE_ID = '1451323733129302128';
 const BLACKLIST_PERM_ROLE_ID = '1451676459545661602';
@@ -94,29 +99,27 @@ client.once(Events.ClientReady, () => {
         console.log(`⏳ Advertências expiradas: ${resultadoAdv.alteracoes}`);
       }
 
-      // 🚫 Blacklist temporária
-      const expiradas = getBlacklistsTemporariasExpiradas();
-      if (!expiradas.length) return;
+      // 🚫 Blacklist temporária (PADRÃO NOVO)
+const expiradas = processarBlacklistsTemporariasExpiradas();
+if (!expiradas.length) return;
 
-      const guild = await client.guilds.fetch(GUILD_ID);
+const guild = await client.guilds.fetch(GUILD_ID);
 
-      for (const registro of expiradas) {
-        removerBlacklist({
-          userId: registro.userId,
-          removidoPor: 'SISTEMA (EXPIRAÇÃO)'
-        });
+for (const registro of expiradas) {
+  const membro = await guild.members.fetch(registro.id).catch(() => null);
 
-        const membro = await guild.members.fetch(registro.userId).catch(() => null);
-        if (membro) {
-          await membro.roles.remove([
-            BLACKLIST_TEMP_ROLE_ID,
-            BLACKLIST_PERM_ROLE_ID
-          ]);
-          if (!membro.roles.cache.has(CARGO_MEMBRO)) {
-            await membro.roles.add(CARGO_MEMBRO);
-          }
-        }
-      }
+  if (membro) {
+    await membro.roles.remove([
+      BLACKLIST_TEMP_ROLE_ID,
+      BLACKLIST_PERM_ROLE_ID
+    ]);
+
+    if (!membro.roles.cache.has(CARGO_MEMBRO)) {
+      await membro.roles.add(CARGO_MEMBRO);
+    }
+  }
+}
+
 
     } catch (err) {
       console.error('❌ Erro no JOB automático:', err);

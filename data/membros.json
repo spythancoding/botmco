@@ -12,13 +12,6 @@
     "dataEntrada": "2025-12-17T20:58:48.790Z",
     "adicionadoPor": "353946672549724161"
   },
-  "471540314977468426": {
-    "nomeDiscord": "leilthon2333",
-    "cargo": "Dono",
-    "whatsapp": "Não informado",
-    "dataEntrada": "2025-12-17T20:58:53.140Z",
-    "adicionadoPor": "353946672549724161"
-  },
   "1073239538320814141": {
     "nomeDiscord": "rf_cpx7",
     "cargo": "Membro",
@@ -157,5 +150,59 @@
     "cargo": "Membro",
     "adicionadoPor": "471540314977468426",
     "dataEntrada": "2025-12-23T22:35:41.729Z"
+  },
+  "353946672549724161": {
+    "id": "353946672549724161",
+    "nomeDiscord": "spythancoding",
+    "cargo": "Membro",
+    "whatsapp": "Não informado",
+    "dataEntrada": "2025-12-27T14:45:48.914Z",
+    "adicionadoPor": "353946672549724161",
+    "departamento": null,
+    "perfil": {
+      "status": "regular",
+      "atividade": "media",
+      "titulo": null,
+      "badges": [
+        "teste_aprovado"
+      ],
+      "comentarios": []
+    }
+  },
+  "471540314977468426": {
+    "id": "471540314977468426",
+    "nomeDiscord": "leilthon2333",
+    "cargo": "Donos",
+    "whatsapp": "Não informado",
+    "dataEntrada": "2025-12-27T14:47:33.313Z",
+    "adicionadoPor": "353946672549724161",
+    "departamento": null,
+    "perfil": {
+      "status": "regular",
+      "atividade": "media",
+      "titulo": null,
+      "badges": [
+        "teste_aprovado"
+      ],
+      "comentarios": []
+    }
+  },
+  "741130617923567656": {
+    "id": "741130617923567656",
+    "nomeDiscord": "nthan2k_",
+    "cargo": "Membro",
+    "whatsapp": "Não informado",
+    "dataEntrada": "2025-12-27T14:50:16.489Z",
+    "adicionadoPor": "353946672549724161",
+    "departamento": null,
+    "perfil": {
+      "status": "regular",
+      "atividade": "media",
+      "titulo": null,
+      "badges": [
+        "teste_aprovado"
+      ],
+      "comentarios": []
+    }
   }
 }
